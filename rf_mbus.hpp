@@ -7,7 +7,6 @@
 #define _RF_MBUS_H
 
 #include <stdint.h>
-#include "config.hpp"
 
 //----------------------------------------------------------------------------------
 //  Constants 
