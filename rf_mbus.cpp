@@ -73,7 +73,7 @@ void rf_mbus_init(byte sck, byte miso, byte mosi, byte ss, byte gdo0, byte gdo2)
   delay(4);
 }
 
-bool rf_mbus_task(uint8_t* MBpacket, int &rssi) {
+bool rf_mbus_task(uint8_t* MBpacket, int &rssi, byte gdo0, byte gdo2) {
   uint8_t bytesDecoded[2];
 
   switch (RXinfo.state) {
