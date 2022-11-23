@@ -85,14 +85,14 @@ bool rf_mbus_task(uint8_t* MBpacket, int &rssi) {
 
      // RX active, awaiting SYNC
     case 1:
-      if (digitalRead(GDO2)) {
+      if (digitalRead(gdo2)) {
         RXinfo.state = 2;
       }
       break;
 
     // awaiting pkt len to read
     case 2:
-      if (digitalRead(GDO0)) {
+      if (digitalRead(gdo0)) {
         // Read the 3 first bytes
         ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, 3);
 
@@ -130,7 +130,7 @@ bool rf_mbus_task(uint8_t* MBpacket, int &rssi) {
 
     // awaiting more data to be read
     case 3:
-      if (digitalRead(GDO0)) {
+      if (digitalRead(gdo0)) {
         // Read out the RX FIFO
         // Do not empty the FIFO (See the CC110x or 2500 Errata Note)
         uint8_t bytesInFIFO = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x7F;        
@@ -144,7 +144,7 @@ bool rf_mbus_task(uint8_t* MBpacket, int &rssi) {
 
   uint8_t overfl = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x80;
   // END OF PAKET
-  if ((!overfl) && (!digitalRead(GDO2)) && (RXinfo.state > 1)) {
+  if ((!overfl) && (!digitalRead(gdo2)) && (RXinfo.state > 1)) {
     ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, (uint8_t)RXinfo.bytesLeft);
 
     // decode!
