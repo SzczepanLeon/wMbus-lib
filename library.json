@@ -1,24 +1,23 @@
 {
-    "name": "wMbus-lib",
-    "description": "This library can be used to receive wMbus telegram (cc1101 is required).",
-    "keywords": "wmbus, cc1101",
-    "authors":
-    {
-      "name": "Szczepan"
-    },
-    "repository":
-    {
-      "type": "git",
-      "url": "https://github.com/SzczepanLeon/wMbus-lib"
-    },
-    "version": "0.9.4",
-    "frameworks": [
-          "arduino"
-    ],
-    "platforms": "*",
-    "dependencies":
-    {
-      "lsatan/SmartRC-CC1101-Driver-Lib": "^2.5.7"
-    }    
+  "name": "wMbus-lib",
+  "description": "This library can be used to receive wMbus telegram (cc1101 is required).",
+  "keywords": "wmbus, cc1101",
+  "authors": {
+    "name": "Szczepan"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SzczepanLeon/wMbus-lib"
+  },
+  "version": "0.9.5",
+  "frameworks": [
+    "arduino"
+  ],
+  "platforms": [
+    "espressif8266",
+    "esp32"
+  ],
+  "dependencies": {
+    "lsatan/SmartRC-CC1101-Driver-Lib": "^2.5.7"
+  }    
 }
-  
