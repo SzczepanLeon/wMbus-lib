@@ -18,6 +18,7 @@
     "esp32"
   ],
   "dependencies": {
+    "SPI": "*",
     "lsatan/SmartRC-CC1101-Driver-Lib": "^2.5.7"
   }    
 }
