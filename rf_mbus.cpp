@@ -47,11 +47,11 @@ uint8_t rf_mbus_on(bool force) {
   return 1; // this will indicate we just have re-started RX
 }
 
-void rf_mbus_init(byte sck, byte miso, byte mosi, byte ss, byte gdo0, byte gdo2) {
+void rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2) {
   Serial.println("");
   pinMode(gdo0, INPUT);
   pinMode(gdo2, INPUT);
-  ELECHOUSE_cc1101.setSpiPin(sck, miso, mosi, ss);
+  ELECHOUSE_cc1101.setSpiPin(clk, miso, mosi, cs);
 
   ELECHOUSE_cc1101.Init();
 
