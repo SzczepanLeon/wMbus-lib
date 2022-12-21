@@ -10,14 +10,27 @@ uint8_t MBbytes[584];
 
 RXinfoDescr RXinfo;
 
+uint32_t sync_time_{0};
+uint8_t extra_time_ = 20;
+uint8_t max_wait_time_ = extra_time_;
+
 uint8_t rf_mbus_on(bool force) {
-  // already in RX?
-  if (!force && (ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) == MARCSTATE_RX)) {
-    return 0;
+  // waiting to long for next part of data?
+  bool reinit_needed = ((millis() - sync_time_) > max_wait_time_) ? true: false;
+
+  if (!force) {
+    if (!reinit_needed) {
+      // already in RX?
+      if (ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) == MARCSTATE_RX) {
+        return 0;
+      }
+    }
   }
 
   // init RX here, each time we're idle
   RXinfo.state = 0;
+  sync_time_ = millis();
+  max_wait_time_ = extra_time_;
 
   ELECHOUSE_cc1101.SpiStrobe(CC1101_SIDLE);
   while((ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) != MARCSTATE_IDLE));
@@ -29,7 +42,6 @@ uint8_t rf_mbus_on(bool force) {
   RXinfo.length      = 0;           // Total length of bytes to receive packet
   RXinfo.bytesLeft   = 0;           // Bytes left to to be read from the RX FIFO
   RXinfo.pByteIndex  = MBbytes;     // Pointer to current position in the byte array
-  RXinfo.start       = true;        // Sync or End of Packet
   RXinfo.complete    = false;       // Packet Received
 
   memset(MBbytes, 0, sizeof(MBbytes));
@@ -87,6 +99,7 @@ bool rf_mbus_task(uint8_t* MBpacket, int &rssi, byte gdo0, byte gdo2) {
     case 1:
       if (digitalRead(gdo2)) {
         RXinfo.state = 2;
+        sync_time_ = millis();
       }
       break;
 
@@ -120,9 +133,9 @@ bool rf_mbus_task(uint8_t* MBpacket, int &rssi, byte gdo0, byte gdo2) {
 
         RXinfo.pByteIndex += 3;
         RXinfo.bytesLeft   = RXinfo.length - 3;
-      
-        RXinfo.start = false;
+
         RXinfo.state = 3;
+        max_wait_time_ += extra_time_;
 
         ELECHOUSE_cc1101.SpiWriteReg(CC1101_FIFOTHR, RX_FIFO_THRESHOLD);
       }
@@ -138,6 +151,8 @@ bool rf_mbus_task(uint8_t* MBpacket, int &rssi, byte gdo0, byte gdo2) {
 
         RXinfo.bytesLeft  -= (bytesInFIFO - 1);
         RXinfo.pByteIndex += (bytesInFIFO - 1);
+
+        max_wait_time_ += extra_time_;
       }
       break;
   }
