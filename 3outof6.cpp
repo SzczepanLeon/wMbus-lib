@@ -117,33 +117,29 @@ static uint8_t decodeTab[64] = {0xFF, //  "3 out of 6" encoded 0x00 decoded
 void encode3outof6 (uint8_t *uncodedData, uint8_t *encodedData, uint8_t lastByte)
 {
   uint8_t  data[4];
-   
+
   // - Perform encoding -
 
   // If last byte insert postamble sequence
-  if (lastByte)
-  {
+  if (lastByte) {
     data[1] = 0x14;
   }
-  else
-  {
+  else {
     data[0] = encodeTab[*(uncodedData + 1) & 0x0F];
     data[1] = encodeTab[(*(uncodedData + 1) >> 4) & 0x0F];  
   }
-    
+
   data[2] = encodeTab[(*uncodedData) & 0x0F];
   data[3] = encodeTab[((*uncodedData) >> 4) & 0x0F];
 
   // - Shift the encoded 6-bit values into a byte buffer -
   *(encodedData + 0) = (data[3] << 2) | (data[2] >> 4);
   *(encodedData + 1) = (data[2] << 4) | (data[1] >> 2);
-  
-  if (!lastByte)
-  {
+
+  if (!lastByte) {
     *(encodedData + 2) = (data[1] << 6) | data[0];
   }
 }
-
 
 
 //----------------------------------------------------------------------------
@@ -168,36 +164,32 @@ uint8_t decode3outof6(uint8_t *encodedData, uint8_t *decodedData, uint8_t lastBy
   uint8_t data[4];
 
   // - Perform decoding on the input data -
-  if (!lastByte)
-  {
+  if (!lastByte) {
     data[0] = decodeTab[(*(encodedData + 2) & 0x3F)]; 
     data[1] = decodeTab[((*(encodedData + 2) & 0xC0) >> 6) | ((*(encodedData + 1) & 0x0F) << 2)];
   }
   // If last byte, ignore postamble sequence
-  else
-  {
+  else {
     data[0] = 0x00;
     data[1] = 0x00;
   }
-  
+
   data[2] = decodeTab[((*(encodedData + 1) & 0xF0) >> 4) | ((*encodedData & 0x03) << 4)];
   data[3] = decodeTab[((*encodedData & 0xFC) >> 2)];
 
-
   // - Check for invalid data coding -
   if ( (data[0] == 0xFF) | (data[1] == 0xFF) |
-       (data[2] == 0xFF) | (data[3] == 0xFF) )
-  
+       (data[2] == 0xFF) | (data[3] == 0xFF) ) {
     return(DECODING_3OUTOF6_ERROR);
+  }
 
-  
   // - Shift the encoded values into a byte buffer -
   *decodedData         = (data[3] << 4) | (data[2]);
-  if (!lastByte)  
+  if (!lastByte) {
     *(decodedData + 1) = (data[1] << 4) | (data[0]);
+  }
 
   return(DECODING_3OUTOF6_OK);
-  
 } 
 
 

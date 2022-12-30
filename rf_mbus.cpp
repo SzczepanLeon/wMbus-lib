@@ -170,6 +170,10 @@ bool rf_mbus_task(uint8_t* MBpacket, int &rssi, byte gdo0, byte gdo2) {
       RXinfo.complete = true;
       rssi = ELECHOUSE_cc1101.getRssi();
     }
+    else {
+      Serial.print("Error during decoding: ");
+      Serial.println(rxStatus);
+    }
     RXinfo.state = 0;
     return RXinfo.complete;
   }
