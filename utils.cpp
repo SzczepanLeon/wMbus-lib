@@ -33,3 +33,8 @@ void dumpHex(uint8_t* data, uint8_t len, bool newLine) {
     Serial.print(" ");
   }
 }
+
+unsigned char *safeButUnsafeVectorPtr(std::vector<unsigned char> &v) {
+    if (v.size() == 0) return NULL;
+    return &v[0];
+}
