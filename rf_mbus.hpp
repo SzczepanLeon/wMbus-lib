@@ -57,7 +57,7 @@ typedef struct RXinfoDescr {
 //  Function declarations
 //----------------------------------------------------------------------------------
 uint8_t rf_mbus_on(bool force = true);
-void rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2);
+bool rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2);
 bool rf_mbus_task(uint8_t* MBpacket, int &rssi, uint8_t gdo0, uint8_t gdo2);
 
 #endif

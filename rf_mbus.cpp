@@ -59,7 +59,8 @@ uint8_t rf_mbus_on(bool force) {
   return 1; // this will indicate we just have re-started RX
 }
 
-void rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2) {
+bool rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2) {
+  bool retVal = false;
   Serial.println("");
   pinMode(gdo0, INPUT);
   pinMode(gdo2, INPUT);
@@ -75,15 +76,22 @@ void rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t g
   ELECHOUSE_cc1101.SpiStrobe(CC1101_SCAL);
 
   byte cc1101Version = ELECHOUSE_cc1101.SpiReadStatus(CC1101_VERSION);
-  Serial.print("wMBus-lib: CC1101 version '");
-  Serial.print(cc1101Version);
-  Serial.println("'");
 
-  ELECHOUSE_cc1101.SetRx();
+  if (cc1101Version != 255) {
+    retVal = true;
+    Serial.print("wMBus-lib: CC1101 version '");
+    Serial.print(cc1101Version);
+    Serial.println("'");
+    ELECHOUSE_cc1101.SetRx();
+    Serial.println("wMBus-lib: CC1101 initialized");
+    memset(&RXinfo, 0, sizeof(RXinfo));
+    delay(4);
+  }
+  else {
+    Serial.println("wMBus-lib: CC1101 initialization FAILED!");
+  }
 
-  Serial.println("wMBus-lib: CC1101 initialized");
-  memset(&RXinfo, 0, sizeof(RXinfo));
-  delay(4);
+  return retVal;
 }
 
 bool rf_mbus_task(uint8_t* MBpacket, int &rssi, byte gdo0, byte gdo2) {
