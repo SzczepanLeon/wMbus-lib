@@ -75,12 +75,13 @@ void rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t g
   ELECHOUSE_cc1101.SpiStrobe(CC1101_SCAL);
 
   byte cc1101Version = ELECHOUSE_cc1101.SpiReadStatus(CC1101_VERSION);
-  Serial.print("CC1101 version: ");
-  Serial.println(cc1101Version);
+  Serial.print("wMBus-lib: CC1101 version '");
+  Serial.print(cc1101Version);
+  Serial.println("'");
 
   ELECHOUSE_cc1101.SetRx();
 
-  Serial.println("CC1101 initialized");
+  Serial.println("wMBus-lib: CC1101 initialized");
   memset(&RXinfo, 0, sizeof(RXinfo));
   delay(4);
 }
@@ -162,7 +163,7 @@ bool rf_mbus_task(uint8_t* MBpacket, int &rssi, byte gdo0, byte gdo2) {
   if ((!overfl) && (!digitalRead(gdo2)) && (RXinfo.state > 1)) {
     ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, (uint8_t)RXinfo.bytesLeft);
 
-    // decode!
+    // decode
     uint16_t rxStatus = PACKET_CODING_ERROR;
     rxStatus = decodeRXBytesTmode(MBbytes, MBpacket, packetSize(RXinfo.lengthField));
 
@@ -170,9 +171,14 @@ bool rf_mbus_task(uint8_t* MBpacket, int &rssi, byte gdo0, byte gdo2) {
       RXinfo.complete = true;
       rssi = ELECHOUSE_cc1101.getRssi();
     }
+    else if (rxStatus == PACKET_CODING_ERROR) {
+      Serial.print("wMBus-lib: Error during decoding '3 out of 6");
+    }
+    else if (rxStatus == PACKET_CRC_ERROR) {
+      Serial.println("wMBus-lib: Error during decoding 'CRC'");
+    }
     else {
-      Serial.print("Error during decoding: ");
-      Serial.println(rxStatus);
+      Serial.println("wMBus-lib: Error during decoding 'unknown'");
     }
     RXinfo.state = 0;
     return RXinfo.complete;
