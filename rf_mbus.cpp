@@ -77,7 +77,7 @@ bool rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t g
 
   byte cc1101Version = ELECHOUSE_cc1101.SpiReadStatus(CC1101_VERSION);
 
-  if (cc1101Version != 255) {
+  if ((cc1101Version != 0) && (cc1101Version != 255)) {
     retVal = true;
     Serial.print("wMBus-lib: CC1101 version '");
     Serial.print(cc1101Version);
