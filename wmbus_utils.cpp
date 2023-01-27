@@ -6,7 +6,9 @@
 #include"wmbus_utils.hpp"
 
 #include<assert.h>
+/**************
 #include<memory.h>
+**************/
 #include<vector>
 
 namespace std
