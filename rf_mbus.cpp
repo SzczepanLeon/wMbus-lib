@@ -180,7 +180,7 @@ bool rf_mbus_task(uint8_t* MBpacket, int &rssi, byte gdo0, byte gdo2) {
       rssi = ELECHOUSE_cc1101.getRssi();
     }
     else if (rxStatus == PACKET_CODING_ERROR) {
-      Serial.print("wMBus-lib: Error during decoding '3 out of 6");
+      Serial.print("wMBus-lib: Error during decoding '3 out of 6'");
     }
     else if (rxStatus == PACKET_CRC_ERROR) {
       Serial.println("wMBus-lib: Error during decoding 'CRC'");
