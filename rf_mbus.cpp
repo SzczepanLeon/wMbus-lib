@@ -94,7 +94,7 @@ bool rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t g
   return retVal;
 }
 
-bool rf_mbus_task(uint8_t* MBpacket, int &rssi, byte gdo0, byte gdo2) {
+bool rf_mbus_task(uint8_t* MBpacket, int8_t &rssi, uint8_t &lqi, byte gdo0, byte gdo2) {
   uint8_t bytesDecoded[2];
 
   switch (RXinfo.state) {
@@ -177,7 +177,8 @@ bool rf_mbus_task(uint8_t* MBpacket, int &rssi, byte gdo0, byte gdo2) {
 
     if (rxStatus == PACKET_OK) {
       RXinfo.complete = true;
-      rssi = ELECHOUSE_cc1101.getRssi();
+      rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
+      lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
     }
     else if (rxStatus == PACKET_CODING_ERROR) {
       Serial.print("wMBus-lib: Error during decoding '3 out of 6'");
