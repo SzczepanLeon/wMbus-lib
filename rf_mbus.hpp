@@ -54,20 +54,22 @@ typedef struct RXinfoDescr {
 
 enum WmBusMode : uint8_t {
   WMBUS_UNKNOWN_MODE = 0,
-  WMBUS_TMODE = 1,
-  WMBUS_CMODE = 2,
+  WMBUS_T1_MODE = 1,
+  WMBUS_C1_MODE = 2,
 };
 
-typedef struct wMbusFrame {
+typedef struct WMbusFrame {
   std::vector<unsigned char> frame{};
   WmBusMode mode;
   int8_t rssi;
   uint8_t lqi;
-} wMbusFrame;
+} WMbusFrame;
 
 //----------------------------------------------------------------------------------
 //  Function declarations
 //----------------------------------------------------------------------------------
+const std::string mode_to_string(WmBusMode mode);
+
 class rf_mbus {
   public:
     bool rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2);
@@ -84,7 +86,7 @@ class rf_mbus {
     uint8_t MBbytes[584];
     uint8_t MBpacket[291];
 
-    wMbusFrame returnFrame;
+    WMbusFrame returnFrame;
 
     RXinfoDescr RXinfo;
 

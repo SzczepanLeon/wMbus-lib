@@ -7,6 +7,16 @@
 
 #include <ELECHOUSE_CC1101_SRC_DRV.h>
 
+const std::string mode_to_string(WmBusMode mode) {
+  switch (mode) {
+    case WMBUS_T1_MODE:
+      return "T1";
+    case WMBUS_C1_MODE:
+      return "C1";
+    default:
+      return "unknown"
+  }
+}
 
 uint8_t rf_mbus::rf_mbus_on(bool force) {
   // waiting to long for next part of data?
@@ -183,7 +193,7 @@ bool rf_mbus::rf_mbus_task() {
     rxStatus = decodeRXBytesTmode(MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
 
     if (rxStatus == PACKET_OK) {
-      this->returnFrame.mode = WMBUS_TMODE;
+      this->returnFrame.mode = WMBUS_T1_MODE;
       RXinfo.complete = true;
       this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
       this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
