@@ -58,8 +58,7 @@ typedef struct RXinfoDescr {
 //----------------------------------------------------------------------------------
 class rf_mbus {
   public:
-    rf_mbus() = delete;
-    bool rf_mbus(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2);
+    bool rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2);
     bool rf_mbus_task(uint8_t* MBpacket, int8_t &rssi, uint8_t &lqi, uint8_t gdo0, uint8_t gdo2);
 
 
