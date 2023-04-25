@@ -52,6 +52,11 @@ typedef struct RXinfoDescr {
   uint8_t state;
 } RXinfoDescr;
 
+typedef struct wMbusFrame {
+  std::vector<unsigned char> frame{};
+  int8_t rssi;
+  uint8_t lqi;
+} wMbusFrame;
 
 //----------------------------------------------------------------------------------
 //  Function declarations
@@ -59,13 +64,20 @@ typedef struct RXinfoDescr {
 class rf_mbus {
   public:
     bool rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2);
-    bool rf_mbus_task(uint8_t* MBpacket, int8_t &rssi, uint8_t &lqi, uint8_t gdo0, uint8_t gdo2);
+    bool rf_mbus_task();
+    wMbusFrame rf_mbus_frame();
 
 
   private:
     uint8_t rf_mbus_on(bool force = true);
+
+    uint8_t gdo0{0};
+    uint8_t gdo2{0};
     
     uint8_t MBbytes[584];
+    uint8_t MBpacket[291];
+
+    wMbusFrame returnFrame;
 
     RXinfoDescr RXinfo;
 

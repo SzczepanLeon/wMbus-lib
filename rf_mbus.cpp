@@ -1,4 +1,5 @@
 #include "utils.hpp"
+#include "crc.hpp"
 #include "rf_mbus.hpp"
 #include "mbus_packet.hpp"
 #include "3outof6.hpp"
@@ -34,10 +35,14 @@ uint8_t rf_mbus::rf_mbus_on(bool force) {
   RXinfo.lengthField = 0;           // Length Field in the wireless MBUS packet
   RXinfo.length      = 0;           // Total length of bytes to receive packet
   RXinfo.bytesLeft   = 0;           // Bytes left to to be read from the RX FIFO
-  RXinfo.pByteIndex  = MBbytes;     // Pointer to current position in the byte array
+  RXinfo.pByteIndex  = this->MBbytes;     // Pointer to current position in the byte array
   RXinfo.complete    = false;       // Packet Received
 
-  memset(MBbytes, 0, sizeof(MBbytes));
+  memset(this->MBbytes, 0, sizeof(this->MBbytes));
+  memset(this->MBpacket, 0, sizeof(this->MBpacket));
+  this->returnFrame.frame.clear();
+  // this->returnFrame.rssi = 0;
+  // this->returnFrame.lqi = 0;
 
   // Set RX FIFO threshold to 4 bytes
   ELECHOUSE_cc1101.SpiWriteReg(CC1101_FIFOTHR, RX_FIFO_START_THRESHOLD);
@@ -51,12 +56,20 @@ uint8_t rf_mbus::rf_mbus_on(bool force) {
 
   return 1; // this will indicate we just have re-started RX
 }
+wMbusFrame rf_mbus::rf_mbus_frame() {
+  uint8_t len_without_crc = crcRemove(this->MBpacket, packetSize(this->MBpacket[0]));
+  std::vector<unsigned char> frame(this->MBpacket, this->MBpacket + len_without_crc);
+  this->returnFrame.frame = frame;
+  return this->returnFrame;
+}
 
 bool rf_mbus::rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2) {
   bool retVal = false;
   Serial.println("");
-  pinMode(gdo0, INPUT);
-  pinMode(gdo2, INPUT);
+  this->gdo0 = gdo0;
+  this->gdo2 = gdo2;
+  pinMode(this->gdo0, INPUT);
+  pinMode(this->gdo2, INPUT);
   ELECHOUSE_cc1101.setSpiPin(clk, miso, mosi, cs);
 
   ELECHOUSE_cc1101.Init();
@@ -87,7 +100,7 @@ bool rf_mbus::rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, 
   return retVal;
 }
 
-bool rf_mbus::rf_mbus_task(uint8_t* MBpacket, int8_t &rssi, uint8_t &lqi, byte gdo0, byte gdo2) {
+bool rf_mbus::rf_mbus_task() {
   uint8_t bytesDecoded[2];
 
   switch (RXinfo.state) {
@@ -99,7 +112,7 @@ bool rf_mbus::rf_mbus_task(uint8_t* MBpacket, int8_t &rssi, uint8_t &lqi, byte g
 
      // RX active, awaiting SYNC
     case 1:
-      if (digitalRead(gdo2)) {
+      if (digitalRead(this->gdo2)) {
         RXinfo.state = 2;
         sync_time_ = millis();
       }
@@ -107,7 +120,7 @@ bool rf_mbus::rf_mbus_task(uint8_t* MBpacket, int8_t &rssi, uint8_t &lqi, byte g
 
     // awaiting pkt len to read
     case 2:
-      if (digitalRead(gdo0)) {
+      if (digitalRead(this->gdo0)) {
         // Read the 3 first bytes
         ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, 3);
 
@@ -145,7 +158,7 @@ bool rf_mbus::rf_mbus_task(uint8_t* MBpacket, int8_t &rssi, uint8_t &lqi, byte g
 
     // awaiting more data to be read
     case 3:
-      if (digitalRead(gdo0)) {
+      if (digitalRead(this->gdo0)) {
         // Read out the RX FIFO
         // Do not empty the FIFO (See the CC110x or 2500 Errata Note)
         uint8_t bytesInFIFO = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x7F;        
@@ -166,12 +179,12 @@ bool rf_mbus::rf_mbus_task(uint8_t* MBpacket, int8_t &rssi, uint8_t &lqi, byte g
 
     // decode
     uint16_t rxStatus = PACKET_CODING_ERROR;
-    rxStatus = decodeRXBytesTmode(MBbytes, MBpacket, packetSize(RXinfo.lengthField));
+    rxStatus = decodeRXBytesTmode(MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
 
     if (rxStatus == PACKET_OK) {
       RXinfo.complete = true;
-      rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
-      lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
+      this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
+      this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
     }
     else if (rxStatus == PACKET_CODING_ERROR) {
       Serial.print("wMBus-lib: Error during decoding '3 out of 6'");
