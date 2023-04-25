@@ -74,7 +74,7 @@ class rf_mbus {
   public:
     bool rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2);
     bool rf_mbus_task();
-    wMbusFrame rf_mbus_frame();
+    WMbusFrame rf_mbus_frame();
 
 
   private:
