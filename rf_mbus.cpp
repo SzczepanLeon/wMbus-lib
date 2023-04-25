@@ -14,7 +14,7 @@ const std::string mode_to_string(WmBusMode mode) {
     case WMBUS_C1_MODE:
       return "C1";
     default:
-      return "unknown"
+      return "unknown";
   }
 }
 
