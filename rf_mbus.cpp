@@ -67,7 +67,8 @@ uint8_t rf_mbus::rf_mbus_on(bool force) {
 
   return 1; // this will indicate we just have re-started RX
 }
-wMbusFrame rf_mbus::rf_mbus_frame() {
+
+WMbusFrame rf_mbus::rf_mbus_frame() {
   uint8_t len_without_crc = crcRemove(this->MBpacket, packetSize(this->MBpacket[0]));
   std::vector<unsigned char> frame(this->MBpacket, this->MBpacket + len_without_crc);
   this->returnFrame.frame = frame;
