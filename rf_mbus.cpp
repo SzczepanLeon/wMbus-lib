@@ -41,8 +41,9 @@ uint8_t rf_mbus::rf_mbus_on(bool force) {
   memset(this->MBbytes, 0, sizeof(this->MBbytes));
   memset(this->MBpacket, 0, sizeof(this->MBpacket));
   this->returnFrame.frame.clear();
-  // this->returnFrame.rssi = 0;
-  // this->returnFrame.lqi = 0;
+  this->returnFrame.rssi = 0;
+  this->returnFrame.lqi = 0;
+  this->returnFrame.mode = WMBUS_UNKNOWN_MODE;
 
   // Set RX FIFO threshold to 4 bytes
   ELECHOUSE_cc1101.SpiWriteReg(CC1101_FIFOTHR, RX_FIFO_START_THRESHOLD);
@@ -182,6 +183,7 @@ bool rf_mbus::rf_mbus_task() {
     rxStatus = decodeRXBytesTmode(MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
 
     if (rxStatus == PACKET_OK) {
+      this->returnFrame.mode = WMBUS_TMODE;
       RXinfo.complete = true;
       this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
       this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();

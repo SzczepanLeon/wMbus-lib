@@ -52,8 +52,15 @@ typedef struct RXinfoDescr {
   uint8_t state;
 } RXinfoDescr;
 
+enum WmBusMode : uint8_t {
+  WMBUS_UNKNOWN_MODE = 0,
+  WMBUS_TMODE = 1,
+  WMBUS_CMODE = 2,
+};
+
 typedef struct wMbusFrame {
   std::vector<unsigned char> frame{};
+  WmBusMode mode;
   int8_t rssi;
   uint8_t lqi;
 } wMbusFrame;
