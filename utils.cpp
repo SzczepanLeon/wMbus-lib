@@ -41,13 +41,13 @@ unsigned char *safeButUnsafeVectorPtr(std::vector<unsigned char> &v) {
     return &v[0];
 }
 
-bool decrypt_TPL_AES_CBC_IV(vector<unsigned char> &frame,
-                            vector<unsigned char>::iterator &pos,
-                            vector<unsigned char> &key,
+bool decrypt_TPL_AES_CBC_IV(std::vector<unsigned char> &frame,
+                            std::vector<unsigned char>::iterator &pos,
+                            std::vector<unsigned char> &key,
                             unsigned char *iv,
                             int *num_encrypted_bytes,
                             int *num_not_encrypted_at_end) {
-  vector<unsigned char> buffer;
+  std::vector<unsigned char> buffer;
   buffer.insert(buffer.end(), pos, frame.end());
   size_t num_bytes_to_decrypt = frame.end()-pos;
   uint8_t tpl_num_encr_blocks = 3; //t->tpl_num_encr_blocks
