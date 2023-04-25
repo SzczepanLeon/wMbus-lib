@@ -6,15 +6,8 @@
 
 #include <ELECHOUSE_CC1101_SRC_DRV.h>
 
-uint8_t MBbytes[584];
 
-RXinfoDescr RXinfo;
-
-uint32_t sync_time_{0};
-uint8_t extra_time_ = 20;
-uint8_t max_wait_time_ = extra_time_;
-
-uint8_t rf_mbus_on(bool force) {
+uint8_t rf_mbus::rf_mbus_on(bool force) {
   // waiting to long for next part of data?
   bool reinit_needed = ((millis() - sync_time_) > max_wait_time_) ? true: false;
 
@@ -59,7 +52,7 @@ uint8_t rf_mbus_on(bool force) {
   return 1; // this will indicate we just have re-started RX
 }
 
-bool rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2) {
+bool rf_mbus::rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2) {
   bool retVal = false;
   Serial.println("");
   pinMode(gdo0, INPUT);
@@ -94,7 +87,7 @@ bool rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t g
   return retVal;
 }
 
-bool rf_mbus_task(uint8_t* MBpacket, int8_t &rssi, uint8_t &lqi, byte gdo0, byte gdo2) {
+bool rf_mbus::rf_mbus_task(uint8_t* MBpacket, int8_t &rssi, uint8_t &lqi, byte gdo0, byte gdo2) {
   uint8_t bytesDecoded[2];
 
   switch (RXinfo.state) {

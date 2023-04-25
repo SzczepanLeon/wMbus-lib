@@ -43,21 +43,36 @@
 #define INFINITE_PACKET_LENGTH     0x02
 
 typedef struct RXinfoDescr {
-    uint8_t  lengthField;         // The L-field in the WMBUS packet
-    uint16_t length;              // Total number of bytes to to be read from the RX FIFO
-    uint16_t bytesLeft;           // Bytes left to to be read from the RX FIFO
-    uint8_t *pByteIndex;          // Pointer to current position in the byte array
-    bool start;                   // Start of Packet
-    bool complete;                // Packet received complete
-    uint8_t state;
+  uint8_t  lengthField;         // The L-field in the WMBUS packet
+  uint16_t length;              // Total number of bytes to to be read from the RX FIFO
+  uint16_t bytesLeft;           // Bytes left to to be read from the RX FIFO
+  uint8_t *pByteIndex;          // Pointer to current position in the byte array
+  bool start;                   // Start of Packet
+  bool complete;                // Packet received complete
+  uint8_t state;
 } RXinfoDescr;
 
 
 //----------------------------------------------------------------------------------
 //  Function declarations
 //----------------------------------------------------------------------------------
-uint8_t rf_mbus_on(bool force = true);
-bool rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2);
-bool rf_mbus_task(uint8_t* MBpacket, int8_t &rssi, uint8_t &lqi, uint8_t gdo0, uint8_t gdo2);
+class rf_mbus {
+  public:
+    bool rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2);
+    bool rf_mbus_task(uint8_t* MBpacket, int8_t &rssi, uint8_t &lqi, uint8_t gdo0, uint8_t gdo2);
+
+
+  private:
+    uint8_t rf_mbus_on(bool force = true);
+    
+    uint8_t MBbytes[584];
+
+    RXinfoDescr RXinfo;
+
+    uint32_t sync_time_{0};
+    uint8_t extra_time_ = 20;
+    uint8_t max_wait_time_ = extra_time_;
+
+}
 
 #endif
