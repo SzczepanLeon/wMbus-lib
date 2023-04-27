@@ -18,7 +18,7 @@ const std::string mode_to_string(WmBusMode mode) {
   }
 }
 
-uint8_t rf_mbus::rf_mbus_on(bool force) {
+uint8_t rf_mbus::start(bool force) {
   // waiting to long for next part of data?
   bool reinit_needed = ((millis() - sync_time_) > max_wait_time_) ? true: false;
 
@@ -68,14 +68,14 @@ uint8_t rf_mbus::rf_mbus_on(bool force) {
   return 1; // this will indicate we just have re-started RX
 }
 
-WMbusFrame rf_mbus::rf_mbus_frame() {
+WMbusFrame rf_mbus::get_frame() {
   uint8_t len_without_crc = crcRemove(this->MBpacket, packetSize(this->MBpacket[0]));
   std::vector<unsigned char> frame(this->MBpacket, this->MBpacket + len_without_crc);
   this->returnFrame.frame = frame;
   return this->returnFrame;
 }
 
-bool rf_mbus::rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2) {
+bool rf_mbus::init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2) {
   bool retVal = false;
   Serial.println("");
   this->gdo0 = gdo0;
@@ -112,13 +112,13 @@ bool rf_mbus::rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, 
   return retVal;
 }
 
-bool rf_mbus::rf_mbus_task() {
+bool rf_mbus::task() {
   uint8_t bytesDecoded[2];
 
   switch (RXinfo.state) {
     case 0:
       {
-        rf_mbus_on();
+        start();
       }
       return false;
 
@@ -211,7 +211,7 @@ bool rf_mbus::rf_mbus_task() {
     RXinfo.state = 0;
     return RXinfo.complete;
   }
-  rf_mbus_on(false);
+  start(false);
 
   return RXinfo.complete;
 }

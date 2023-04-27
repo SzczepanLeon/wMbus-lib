@@ -72,13 +72,13 @@ const std::string mode_to_string(WmBusMode mode);
 
 class rf_mbus {
   public:
-    bool rf_mbus_init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2);
-    bool rf_mbus_task();
-    WMbusFrame rf_mbus_frame();
+    bool init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2);
+    bool task();
+    WMbusFrame get_frame();
 
 
   private:
-    uint8_t rf_mbus_on(bool force = true);
+    uint8_t start(bool force = true);
 
     uint8_t gdo0{0};
     uint8_t gdo2{0};
@@ -91,7 +91,7 @@ class rf_mbus {
     RXinfoDescr RXinfo;
 
     uint32_t sync_time_{0};
-    uint8_t extra_time_ = 20;
+    uint8_t extra_time_{20};
     uint8_t max_wait_time_ = extra_time_;
 
 };
