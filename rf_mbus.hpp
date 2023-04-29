@@ -6,6 +6,7 @@
 #define _RF_MBUS_H
 
 #include <stdint.h>
+#include <string>
 
 //----------------------------------------------------------------------------------
 //  Constants 
