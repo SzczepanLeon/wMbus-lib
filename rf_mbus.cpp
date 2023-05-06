@@ -238,10 +238,13 @@ bool rf_mbus::task() {
     // decode
     uint16_t rxStatus = PACKET_UNKNOWN_ERROR;
     uint16_t rxLength = 0;
-    Serial.println("wMBus-lib: L=%d l=%d", RXinfo.length, byteSize(packetSize(RXinfo.lengthField)));
+    Serial.print("wMBus-lib: L=");
+    Serial.print(RXinfo.length);
+    Serial.print(" l=");
+    Serial.println(byteSize(packetSize(RXinfo.lengthField)));
     Serial.print("wMBus-lib: Frame: ");
     for (int ii=0; ii < RXinfo.length; ii++) {
-      Serial.println("0x%02X", this->MBbytes[ii]);
+      Serial.printf("0x%02X", (int)(this->MBbytes[ii]));
     }
     Serial.println("");
     if (RXinfo.framemode == WMBUS_T1_MODE) {
