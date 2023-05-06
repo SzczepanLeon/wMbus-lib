@@ -236,15 +236,22 @@ bool rf_mbus::task() {
     ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, (uint8_t)RXinfo.bytesLeft);
 
     // decode
-    uint16_t rxStatus = PACKET_CODING_ERROR;
-    uint16_t rxLength;
+    uint16_t rxStatus = PACKET_UNKNOWN_ERROR;
+    uint16_t rxLength = 0;
+    Serial.println("wMBus-lib: L=%d l=%d", RXinfo.length, byteSize(packetSize(RXinfo.lengthField)););
+    Serial.print("wMBus-lib: Frame: ");
+    for (int ii=0; i < RXinfo.length; i++) {
+      Serial.println("0x%02X", this->MBbytes[ii]);
+    }
+    Serial.println("");
     if (RXinfo.framemode == WMBUS_T1_MODE) {
-      Serial.println("wMBus-lib: Processing T1 frame");
+      Serial.println("wMBus-lib: Processing T1 A frame");
       rxStatus = decodeRXBytesTmode(this->MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
       rxLength = packetSize(this->MBpacket[0]);
     } else if (RXinfo.framemode == WMBUS_C1_MODE) {
       if (RXinfo.frametype == WMBUS_FRAMEA) {
         Serial.println("wMBus-lib: Processing C1 A frame");
+//         2 + 1 + RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16);
         rxLength = RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16) + 1;
         rxStatus = verifyCrcBytesCmodeA(this->MBbytes + 2, this->MBpacket, rxLength);
       } else if (RXinfo.frametype == WMBUS_FRAMEB) {
@@ -261,13 +268,13 @@ bool rf_mbus::task() {
       this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
     }
     else if (rxStatus == PACKET_CODING_ERROR) {
-      Serial.println("wMBus-lib: Error during decoding '3 out of 6'");
+      Serial.println("wMBus-lib:  Error during decoding '3 out of 6'");
     }
     else if (rxStatus == PACKET_CRC_ERROR) {
-      Serial.println("wMBus-lib: Error during decoding 'CRC'");
+      Serial.println("wMBus-lib:  Error during decoding 'CRC'");
     }
     else {
-      Serial.println("wMBus-lib: Error during decoding 'unknown'");
+      Serial.println("wMBus-lib:  Error during decoding 'unknown'");
     }
     RXinfo.state = 0;
     return RXinfo.complete;

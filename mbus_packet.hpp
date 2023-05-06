@@ -13,6 +13,7 @@
 #define PACKET_OK              0
 #define PACKET_CODING_ERROR    1
 #define PACKET_CRC_ERROR       2
+#define PACKET_UNKNOWN_ERROR   3
 
 
 //----------------------------------------------------------------------------------
