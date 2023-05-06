@@ -240,7 +240,7 @@ bool rf_mbus::task() {
     uint16_t rxLength = 0;
     Serial.println("wMBus-lib: L=%d l=%d", RXinfo.length, byteSize(packetSize(RXinfo.lengthField)););
     Serial.print("wMBus-lib: Frame: ");
-    for (int ii=0; i < RXinfo.length; i++) {
+    for (int ii=0; ii < RXinfo.length; ii++) {
       Serial.println("0x%02X", this->MBbytes[ii]);
     }
     Serial.println("");
