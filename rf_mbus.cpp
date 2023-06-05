@@ -74,17 +74,103 @@ WMbusFrame rf_mbus::get_frame() {
   uint8_t len_without_crc = 0;
   if (RXinfo.framemode == WMBUS_T1_MODE) {
     len_without_crc = crcRemove(this->MBpacket, packetSize(this->MBpacket[0]));
+    Serial.print(" ll=");
+    Serial.println(len_without_crc);
     std::vector<unsigned char> frame(this->MBpacket, this->MBpacket + len_without_crc);
     this->returnFrame.frame = frame;
   } else if (RXinfo.framemode == WMBUS_C1_MODE) {
     if (RXinfo.frametype == WMBUS_FRAMEA) {
-      len_without_crc = crcRemove(this->MBbytes + 2, packetSize(this->MBbytes[2]));
-      std::vector<unsigned char> frame(this->MBbytes + 2, this->MBbytes + 2 + len_without_crc);
+      len_without_crc = crcRemove(this->MBbytes + 2, RXinfo.length);
+      Serial.print(" ll=");
+      Serial.println(len_without_crc);
+      std::vector<unsigned char> frame(this->MBbytes + 2, this->MBbytes + 2 + this->MBbytes[2]);
       this->returnFrame.frame = frame;
     }
   }
 
   return this->returnFrame;
+}
+
+uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t packetSize)
+{
+  uint16_t crc = 0;
+  uint16_t i = 0;
+
+  bool crcNotOk = false;
+
+  while (i < 10) {
+    crc = crcCalc(crc, pByte[i]);
+    pPacket[i] = pByte[i];
+    ++i;
+  }
+
+  Serial.printf("   CRC A.1: %04X | %02X% 02X", crc, pByte[i], pByte[i + 1]);
+  Serial.println("");
+  if ((~crc) != (pByte[i] << 8 | pByte[i + 1])) {
+    crcNotOk = true;
+    // return (PACKET_CRC_ERROR);
+  }
+
+  pPacket[i] = pByte[i];
+  ++i;
+  pPacket[i] = pByte[i];
+  ++i;
+  crc = 0;
+
+  int cycles = (packetSize - 12) / 18;
+  int myRun = 2;
+  while (cycles > 0) {
+    for (int j = 0; j < 16; ++j) {
+      crc = crcCalc(crc, pByte[i]);
+      pPacket[i] = pByte[i];
+      ++i;
+    }
+
+    Serial.printf("   CRC A.%d: %04X | %02X% 02X", myRun, crc, pByte[i], pByte[i + 1]);
+    Serial.println("");
+    myRun++;
+    if ((~crc) != (pByte[i] << 8 | pByte[i + 1])) {
+      crcNotOk = true;
+      // return (PACKET_CRC_ERROR);
+    }
+
+    pPacket[i] = pByte[i];
+    ++i;
+    pPacket[i] = pByte[i];
+    ++i;
+    crc = 0;
+
+    --cycles;
+  }
+
+  if (i == packetSize) {
+    return (PACKET_OK);
+  }
+
+  while (i < packetSize - 2) {
+    crc = crcCalc(crc, pByte[i]);
+    pPacket[i] = pByte[i];
+    ++i;
+  }
+
+  Serial.printf("   CRC A.%d: %04X | %02X% 02X", myRun, crc, pByte[i], pByte[i + 1]);
+  Serial.println("");
+  if ((~crc) != (pByte[i] << 8 | pByte[i + 1])) {
+    crcNotOk = true;
+    // return (PACKET_CRC_ERROR);
+  }
+
+  pPacket[i] = pByte[i];
+  ++i;
+  pPacket[i] = pByte[i];
+  ++i;
+
+  if (crcNotOk) {
+    return (PACKET_CRC_ERROR);
+  }
+  else {
+    return (PACKET_OK);
+  }
 }
 
 bool rf_mbus::init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2) {
@@ -247,19 +333,7 @@ bool rf_mbus::task() {
     // decode
     uint16_t rxStatus = PACKET_UNKNOWN_ERROR;
     uint16_t rxLength = 0;
-    Serial.print("wMBus-lib: L=");
-    Serial.print(RXinfo.length);
-    Serial.print(" l=");
-    Serial.print(packetSize(RXinfo.lengthField));
-    Serial.print("wMBus-lib: L=");
-    Serial.print(this->MBbytes[2]);
-    Serial.print(" l=");
-    Serial.println(byteSize(packetSize(RXinfo.lengthField)));
-    Serial.print("wMBus-lib: Frame: ");
-    for (int ii=0; ii < (RXinfo.length + 2); ii++) {
-      Serial.printf(", 0x%02X", (int)(this->MBbytes[ii]));
-    }
-    Serial.println("");
+
     if (RXinfo.framemode == WMBUS_T1_MODE) {
       Serial.println("wMBus-lib: Processing T1 A frame");
       rxStatus = decodeRXBytesTmode(this->MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
@@ -267,15 +341,44 @@ bool rf_mbus::task() {
     } else if (RXinfo.framemode == WMBUS_C1_MODE) {
       if (RXinfo.frametype == WMBUS_FRAMEA) {
         Serial.println("wMBus-lib: Processing C1 A frame");
+
+      //
+      // Preamble + L-field + payload + CRC bytes
+      // RXinfo.length = 2 + 1 + RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16);
+      //
+      // RXinfo.lengthField = RXinfo.pByteIndex[2];
+      //
+      // L
+      //
+      // byteSize(packetSize(RXinfo.lengthField));
+      Serial.print(" L=");
+      Serial.print(RXinfo.length);
+      Serial.print(" l=");
+      Serial.print(RXinfo.lengthField);
+      Serial.print(" ll=");
+      Serial.print(this->MBbytes[2]);
+      Serial.print(" lll=");
+      Serial.println(byteSize(packetSize(RXinfo.lengthField)));
+      Serial.print(" FullFrame: ");
+      for (int ii=0; ii < (RXinfo.length + 2); ii++) {
+        Serial.printf("0x%02X, ", (int)(this->MBbytes[ii]));
+      }
+      Serial.println("");
+      Serial.print(" Frame: ");
+      for (int ii=2; ii < (RXinfo.lengthField + 1); ii++) {
+        Serial.printf("0x%02X, ", (int)(this->MBbytes[ii]));
+      }
+      Serial.println("");
+
 //         2 + 1 + RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16);
         rxLength = RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16) + 1;
-        rxStatus = verifyCrcBytesCmodeA(this->MBbytes + 2, this->MBpacket, rxLength);
+        rxStatus = verifyCrcBytesCmodeA_local(this->MBbytes + 2, this->MBpacket, rxLength);
         Serial.print("  rxStatus 1 = ");
         Serial.println(rxStatus);
-        rxStatus = verifyCrcBytesCmodeA(this->MBbytes + 2, this->MBpacket, this->MBbytes[2]);
+        rxStatus = verifyCrcBytesCmodeA_local(this->MBbytes + 2, this->MBpacket, this->MBbytes[2]);
         Serial.print("  rxStatus 2 = ");
         Serial.println(rxStatus);
-        rxStatus = verifyCrcBytesCmodeA(this->MBbytes + 2, this->MBpacket, packetSize(this->MBbytes[2]));
+        rxStatus = verifyCrcBytesCmodeA_local(this->MBbytes + 2, this->MBpacket, packetSize(this->MBbytes[2]));
         Serial.print("  rxStatus 3 = ");
         Serial.println(rxStatus);
         rxStatus = PACKET_OK;
@@ -293,13 +396,13 @@ bool rf_mbus::task() {
       this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
     }
     else if (rxStatus == PACKET_CODING_ERROR) {
-      Serial.println("wMBus-lib:  Error during decoding '3 out of 6'");
+      Serial.println(" Error during decoding '3 out of 6'");
     }
     else if (rxStatus == PACKET_CRC_ERROR) {
-      Serial.println("wMBus-lib:  Error during decoding 'CRC'");
+      Serial.println(" Error during decoding 'CRC'");
     }
     else {
-      Serial.println("wMBus-lib:  Error during decoding 'unknown'");
+      Serial.println(" Error during decoding 'unknown'");
     }
     RXinfo.state = 0;
     return RXinfo.complete;
