@@ -71,9 +71,17 @@ uint8_t rf_mbus::start(bool force) {
 }
 
 WMbusFrame rf_mbus::get_frame() {
-  // ToDo: Add CRC removal for Frame B
-  uint8_t len_without_crc = crcRemove(this->MBpacket, packetSize(this->MBpacket[0]));
-  std::vector<unsigned char> frame(this->MBpacket, this->MBpacket + len_without_crc);
+  uint8_t len_without_crc = 0;
+  if (RXinfo.framemode == WMBUS_T1_MODE) {
+    len_without_crc = crcRemove(this->MBpacket, packetSize(this->MBpacket[0]));
+    std::vector<unsigned char> frame(this->MBpacket, this->MBpacket + len_without_crc);
+  } else if (RXinfo.framemode == WMBUS_C1_MODE) {
+    if (RXinfo.frametype == WMBUS_FRAMEA) {
+      len_without_crc = crcRemove(this->MBbytes + 2, packetSize(this->MBbytes[0]));
+      std::vector<unsigned char> frame(this->MBbytes + 2, this->MBbytes + 2 + len_without_crc);
+    }
+  }
+
   this->returnFrame.frame = frame;
   return this->returnFrame;
 }
@@ -241,10 +249,14 @@ bool rf_mbus::task() {
     Serial.print("wMBus-lib: L=");
     Serial.print(RXinfo.length);
     Serial.print(" l=");
+    Serial.print(packetSize(RXinfo.lengthField));
+    Serial.print("wMBus-lib: L=");
+    Serial.print(this->MBbytes[2]);
+    Serial.print(" l=");
     Serial.println(byteSize(packetSize(RXinfo.lengthField)));
     Serial.print("wMBus-lib: Frame: ");
-    for (int ii=0; ii < RXinfo.length; ii++) {
-      Serial.printf("0x%02X", (int)(this->MBbytes[ii]));
+    for (int ii=0; ii < (RXinfo.length + 2); ii++) {
+      Serial.printf(", 0x%02X", (int)(this->MBbytes[ii]));
     }
     Serial.println("");
     if (RXinfo.framemode == WMBUS_T1_MODE) {
@@ -257,6 +269,15 @@ bool rf_mbus::task() {
 //         2 + 1 + RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16);
         rxLength = RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16) + 1;
         rxStatus = verifyCrcBytesCmodeA(this->MBbytes + 2, this->MBpacket, rxLength);
+        Serial.print("  rxStatus 1 = ");
+        Serial.println(rxStatus);
+        rxStatus = verifyCrcBytesCmodeA(this->MBbytes + 2, this->MBpacket, this->MBbytes[2]);
+        Serial.print("  rxStatus 2 = ");
+        Serial.println(rxStatus);
+        rxStatus = verifyCrcBytesCmodeA(this->MBbytes + 2, this->MBpacket, packetSize(this->MBbytes[2]));
+        Serial.print("  rxStatus 3 = ");
+        Serial.println(rxStatus);
+        rxStatus = PACKET_OK;
       } else if (RXinfo.frametype == WMBUS_FRAMEB) {
         Serial.println("wMBus-lib: Processing C1 B frame");
         rxLength = RXinfo.lengthField + 1;
