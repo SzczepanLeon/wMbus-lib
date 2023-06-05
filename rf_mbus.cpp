@@ -396,6 +396,11 @@ bool rf_mbus::task() {
         rxStatus = verifyCrcBytesCmodeA_local(this->MBbytes + 2, this->MBpacket, packetSize(this->MBbytes[2]));
         Serial.print("  rxStatus 3 = ");
         Serial.println(rxStatus);
+        Serial.print(" Frame: ");
+        for (int ii=0; ii < (packetSize(this->MBbytes[2]) + 2); ii++) {
+          Serial.printf("0x%02X, ", (int)(this->MBpacket[ii]));
+        }
+        Serial.println("");
         rxStatus = PACKET_OK;
       } else if (RXinfo.frametype == WMBUS_FRAMEB) {
         Serial.println("wMBus-lib: Processing C1 B frame");
