@@ -75,14 +75,15 @@ WMbusFrame rf_mbus::get_frame() {
   if (RXinfo.framemode == WMBUS_T1_MODE) {
     len_without_crc = crcRemove(this->MBpacket, packetSize(this->MBpacket[0]));
     std::vector<unsigned char> frame(this->MBpacket, this->MBpacket + len_without_crc);
+    this->returnFrame.frame = frame;
   } else if (RXinfo.framemode == WMBUS_C1_MODE) {
     if (RXinfo.frametype == WMBUS_FRAMEA) {
-      len_without_crc = crcRemove(this->MBbytes + 2, packetSize(this->MBbytes[0]));
+      len_without_crc = crcRemove(this->MBbytes + 2, packetSize(this->MBbytes[2]));
       std::vector<unsigned char> frame(this->MBbytes + 2, this->MBbytes + 2 + len_without_crc);
+      this->returnFrame.frame = frame;
     }
   }
 
-  this->returnFrame.frame = frame;
   return this->returnFrame;
 }
 
