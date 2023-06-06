@@ -80,10 +80,10 @@ WMbusFrame rf_mbus::get_frame() {
     this->returnFrame.frame = frame;
   } else if (RXinfo.framemode == WMBUS_C1_MODE) {
     if (RXinfo.frametype == WMBUS_FRAMEA) {
-      len_without_crc = crcRemove(this->MBbytes + 2, packetSize(RXinfo.lengthField));
+      len_without_crc = crcRemove(this->MBpacket, packetSize(this->MBpacket[0]));
       Serial.print(" ll=");
       Serial.println(len_without_crc);
-      std::vector<unsigned char> frame(this->MBbytes + 2, this->MBbytes + 2 + this->MBbytes[2]);
+      std::vector<unsigned char> frame(this->MBpacket, this->MBpacket + len_without_crc);
       this->returnFrame.frame = frame;
     }
   }
@@ -98,16 +98,17 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
 
   bool crcNotOk = false;
 
+  Serial.print("   ");
   while (i < 10) {
-    Serial.printf("0x02X, ", pByte[i]);
+    Serial.printf("%02X", pByte[i]);
     crc = crcCalc(crc, pByte[i]);
     pPacket[i] = pByte[i];
     ++i;
   }
 
-  Serial.println("");
-  Serial.printf("   CRC A.1: %04X | %02X% 02X", crc, pByte[i], pByte[i + 1]);
-  Serial.println("");
+  // Serial.println("");
+  Serial.printf(" %04X [%02X%02X] ", crc, pByte[i], pByte[i + 1]);
+  // Serial.println("");
   if ((~crc) != (pByte[i] << 8 | pByte[i + 1])) {
     crcNotOk = true;
     // return (PACKET_CRC_ERROR);
@@ -121,17 +122,19 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
 
   int cycles = (packetSize - 12) / 18;
   int myRun = 2;
+  Serial.print("   ");
   while (cycles > 0) {
     for (int j = 0; j < 16; ++j) {
-      Serial.printf("0x02X, ", pByte[i]);
+      Serial.printf("%02X", pByte[i]);
       crc = crcCalc(crc, pByte[i]);
       pPacket[i] = pByte[i];
       ++i;
     }
 
-    Serial.println("");
-    Serial.printf("   CRC A.%d: %04X | %02X% 02X", myRun, crc, pByte[i], pByte[i + 1]);
-    Serial.println("");
+    // Serial.println("");
+    Serial.printf(" %04X [%02X%02X] ", crc, pByte[i], pByte[i + 1]);
+    // Serial.printf("   CRC A.%d: %04X | %02X% 02X", myRun, crc, pByte[i], pByte[i + 1]);
+    // Serial.println("");
     myRun++;
     if ((~crc) != (pByte[i] << 8 | pByte[i + 1])) {
       crcNotOk = true;
@@ -151,16 +154,18 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
     return (PACKET_OK);
   }
 
+  Serial.print("   ");
   while (i < packetSize - 2) {
-    Serial.printf("0x02X, ", pByte[i]);
+    Serial.printf("%02X", pByte[i]);
     crc = crcCalc(crc, pByte[i]);
     pPacket[i] = pByte[i];
     ++i;
   }
 
-  Serial.println("");
-  Serial.printf("   CRC A.%d: %04X | %02X% 02X", myRun, crc, pByte[i], pByte[i + 1]);
-  Serial.println("");
+  // Serial.println("");
+  Serial.printf(" %04X [%02X%02X] ", crc, pByte[i], pByte[i + 1]);
+  // Serial.printf("   CRC A.%d: %04X | %02X% 02X", myRun, crc, pByte[i], pByte[i + 1]);
+  // Serial.println("");
   if ((~crc) != (pByte[i] << 8 | pByte[i + 1])) {
     crcNotOk = true;
     // return (PACKET_CRC_ERROR);
@@ -372,9 +377,9 @@ bool rf_mbus::task() {
         Serial.print(" ll=");
         Serial.print(this->MBbytes[2]);
         Serial.print(" lll=");
-        Serial.println(byteSize(packetSize(RXinfo.lengthField)));
+        Serial.println(packetSize(RXinfo.lengthField));
         Serial.print(" FullFrame: ");
-        for (int ii=0; ii < (RXinfo.length); ii++) {
+        for (int ii=0; ii < RXinfo.length; ii++) {
           Serial.printf("0x%02X, ", (int)(this->MBbytes[ii]));
         }
         Serial.println("");
@@ -382,7 +387,7 @@ bool rf_mbus::task() {
         // 2 + 1 + RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16);
         rxLength = RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16) + 1;
         Serial.print(" Frame: ");
-        for (int ii=2; ii < (rxLength); ii++) {
+        for (int ii=2; ii < RXinfo.length - 2; ii++) {
           Serial.printf("0x%02X, ", (int)(this->MBbytes[ii]));
         }
         Serial.println("");
@@ -393,11 +398,11 @@ bool rf_mbus::task() {
         // rxStatus = verifyCrcBytesCmodeA_local(this->MBbytes + 2, this->MBpacket, this->MBbytes[2]); // zle
         // Serial.print("  rxStatus 2 = ");
         // Serial.println(rxStatus);
-        rxStatus = verifyCrcBytesCmodeA_local(this->MBbytes + 2, this->MBpacket, packetSize(this->MBbytes[2]));
+        rxStatus = verifyCrcBytesCmodeA_local(this->MBbytes + 2, this->MBpacket, rxLength);
         Serial.print("  rxStatus 3 = ");
         Serial.println(rxStatus);
         Serial.print(" Frame: ");
-        for (int ii=0; ii < (packetSize(this->MBbytes[2]) + 2); ii++) {
+        for (int ii=0; ii < RXinfo.length - 2; ii++) {
           Serial.printf("0x%02X, ", (int)(this->MBpacket[ii]));
         }
         Serial.println("");
