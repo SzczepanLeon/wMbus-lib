@@ -91,13 +91,10 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
     pPacket[i] = pByte[i];
     ++i;
   }
-
-  // Serial.println("");
   Serial.printf(" %04X [%02X%02X] ", crc, pByte[i], pByte[i + 1]);
-  // Serial.println("");
+
   if ((~crc) != (pByte[i] << 8 | pByte[i + 1])) {
     crcNotOk = true;
-    // return (PACKET_CRC_ERROR);
   }
 
   pPacket[i] = pByte[i];
@@ -116,15 +113,11 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
       pPacket[i] = pByte[i];
       ++i;
     }
-
-    // Serial.println("");
     Serial.printf(" %04X [%02X%02X] ", crc, pByte[i], pByte[i + 1]);
-    // Serial.printf("   CRC A.%d: %04X | %02X% 02X", myRun, crc, pByte[i], pByte[i + 1]);
-    // Serial.println("");
+
     myRun++;
     if ((~crc) != (pByte[i] << 8 | pByte[i + 1])) {
       crcNotOk = true;
-      // return (PACKET_CRC_ERROR);
     }
 
     pPacket[i] = pByte[i];
@@ -148,13 +141,10 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
     ++i;
   }
 
-  // Serial.println("");
   Serial.printf(" %04X [%02X%02X] ", crc, pByte[i], pByte[i + 1]);
-  // Serial.printf("   CRC A.%d: %04X | %02X% 02X", myRun, crc, pByte[i], pByte[i + 1]);
-  // Serial.println("");
+
   if ((~crc) != (pByte[i] << 8 | pByte[i + 1])) {
     crcNotOk = true;
-    // return (PACKET_CRC_ERROR);
   }
 
   pPacket[i] = pByte[i];
@@ -164,11 +154,9 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
 
   Serial.println("");
   if (crcNotOk) {
-    // Serial.print("    CRC not OK");
     return (PACKET_CRC_ERROR);
   }
   else {
-    // Serial.print("    CRC OK");
     return (PACKET_OK);
   }
 }
@@ -371,13 +359,13 @@ bool rf_mbus::task() {
       this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
     }
     else if (rxStatus == PACKET_CODING_ERROR) {
-      Serial.println(" Error during decoding '3 out of 6'");
+      Serial.println("wMBus-lib:  Error during decoding '3 out of 6'");
     }
     else if (rxStatus == PACKET_CRC_ERROR) {
-      Serial.println(" Error during decoding 'CRC'");
+      Serial.println("wMBus-lib:  Error during decoding 'CRC'");
     }
     else {
-      Serial.println(" Error during decoding 'unknown'");
+      Serial.println("wMBus-lib:  Error during decoding 'unknown'");
     }
     RXinfo.state = 0;
     return RXinfo.complete;
