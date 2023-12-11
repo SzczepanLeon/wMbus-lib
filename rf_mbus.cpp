@@ -338,8 +338,8 @@ bool rf_mbus::task() {
 
         // 2 + 1 + RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16);
         rxLength = RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16) + 1;
-
-        rxStatus = verifyCrcBytesCmodeA_local(this->MBbytes + 2, this->MBpacket, rxLength);
+        // cheat commented verifyCrcBytesCmodeA_local   
+        //rxStatus = verifyCrcBytesCmodeA_local(this->MBbytes + 2, this->MBpacket, rxLength);
         // small cheat
         rxStatus = PACKET_OK;
       } else if (RXinfo.frametype == WMBUS_FRAMEB) {
