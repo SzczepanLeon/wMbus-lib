@@ -247,7 +247,8 @@ bool rf_mbus::task() {
             // Preamble + L-field + payload + CRC bytes
             RXinfo.length = 2 + 1 + RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16);
           } else if (RXinfo.pByteIndex[1] == 0x3D) {
-            RXinfo.frametype = WMBUS_FRAMEB;
+            // Cheat, should be WMBUS_FRAMEB
+            RXinfo.frametype = WMBUS_FRAMEA;
             // Frame format B
             RXinfo.lengthField = RXinfo.pByteIndex[2];
 
