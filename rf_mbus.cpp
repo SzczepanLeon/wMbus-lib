@@ -161,7 +161,8 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
   }
 }
 
-bool rf_mbus::init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2) {
+bool rf_mbus::init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs,
+                   uint8_t gdo0, uint8_t gdo2, uint32_t freq) {
   bool retVal = false;
   Serial.println("");
   this->gdo0 = gdo0;
@@ -176,6 +177,17 @@ bool rf_mbus::init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t 
     ELECHOUSE_cc1101.SpiWriteReg(TMODE_RF_SETTINGS_BYTES[i << 1],
                                  TMODE_RF_SETTINGS_BYTES[(i << 1) + 1]);
   }
+
+  uint32_t freq_reg = freq * (65536/26000000);
+  uint8_t freq2 = (freq_reg >> 16) & 0xFF;
+  uint8_t freq1 = (freq_reg >> 8) & 0xFF;
+  uint8_t freq0 = freq_reg & 0xFF;
+
+  Serial.printf("Set CC1101 frequency to %3.3fMHz [%02X %02X %02X]\n",
+                 freq/1000000, freq2, freq1, freq0));
+  ELECHOUSE_cc1101.SpiWriteReg(CC1101_FREQ2, freq2);
+  ELECHOUSE_cc1101.SpiWriteReg(CC1101_FREQ1, freq1);
+  ELECHOUSE_cc1101.SpiWriteReg(CC1101_FREQ0, freq0);
 
   ELECHOUSE_cc1101.SpiStrobe(CC1101_SCAL);
 

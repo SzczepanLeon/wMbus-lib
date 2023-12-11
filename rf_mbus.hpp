@@ -81,7 +81,8 @@ const std::string mode_to_string(WmBusFrameMode mode);
 
 class rf_mbus {
   public:
-    bool init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2);
+    bool init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs,
+              uint8_t gdo0, uint8_t gdo2, uint32_t freq);
     bool task();
     WMbusFrame get_frame();
 
