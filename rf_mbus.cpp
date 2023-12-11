@@ -188,6 +188,7 @@ bool rf_mbus::init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs,
   ELECHOUSE_cc1101.SpiWriteReg(CC1101_FREQ2, freq2);
   ELECHOUSE_cc1101.SpiWriteReg(CC1101_FREQ1, freq1);
   ELECHOUSE_cc1101.SpiWriteReg(CC1101_FREQ0, freq0);
+  ELECHOUSE_cc1101.Calibrate();
 
   ELECHOUSE_cc1101.SpiStrobe(CC1101_SCAL);
 
