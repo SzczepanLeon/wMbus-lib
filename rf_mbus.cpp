@@ -162,7 +162,7 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
 }
 
 bool rf_mbus::init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs,
-                   uint8_t gdo0, uint8_t gdo2, uint32_t freq) {
+                   uint8_t gdo0, uint8_t gdo2, float freq) {
   bool retVal = false;
   Serial.println("");
   this->gdo0 = gdo0;
@@ -178,7 +178,7 @@ bool rf_mbus::init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs,
                                  TMODE_RF_SETTINGS_BYTES[(i << 1) + 1]);
   }
 
-  uint32_t freq_reg = freq * (65536/26000000);
+  uint32_t freq_reg = uint32_t(freq * 65536 / 26);
   uint8_t freq2 = (freq_reg >> 16) & 0xFF;
   uint8_t freq1 = (freq_reg >> 8) & 0xFF;
   uint8_t freq0 = freq_reg & 0xFF;
