@@ -161,6 +161,25 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
   }
 }
 
+uint16_t verifyCrcBytesCmodeB_local(uint8_t* pByte, uint8_t* pPacket, uint16_t packetSize)
+{
+  uint16_t crc = 0;
+  uint16_t i = 0;
+
+  bool crcNotOk = false;
+
+  Serial.print("   ");
+  while (i < packetSize - 2) {
+    Serial.printf("%02X", pByte[i]);
+    crc = crcCalc(crc, pByte[i]);
+    pPacket[i] = pByte[i];
+    ++i;
+  }
+  Serial.printf(" crc %04X [%02X%02X] ", crc, pByte[i], pByte[i + 1]);
+    return (PACKET_OK);
+  
+}
+
 bool rf_mbus::init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs, uint8_t gdo0, uint8_t gdo2) {
   bool retVal = false;
   Serial.println("");
