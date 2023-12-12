@@ -258,7 +258,7 @@ bool rf_mbus::task() {
             }
 
             // preamble + L-field + payload
-            RXinfo.length = 2 + 1 + RXinfo.lengthField;
+            RXinfo.length = RXinfo.lengthField;
           } else {
             // Unknown type, reset.
             RXinfo.state = 0;
@@ -350,6 +350,7 @@ bool rf_mbus::task() {
         }
         Serial.println("");
         //rxStatus = PACKET_UNKNOWN_ERROR;
+        rxLength = RXinfo.lengthField;
         rxStatus = verifyCrcBytesCmodeB_local(this->MBbytes + 2, this->MBpacket, rxLength);
         rxStatus = PACKET_OK;
       }
