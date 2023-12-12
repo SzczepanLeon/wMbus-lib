@@ -247,8 +247,8 @@ bool rf_mbus::task() {
             // Preamble + L-field + payload + CRC bytes
             RXinfo.length = 2 + 1 + RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16);
           } else if (RXinfo.pByteIndex[1] == 0x3D) {
-            // Cheat, should be WMBUS_FRAMEB
-            RXinfo.frametype = WMBUS_FRAMEA;
+            
+            RXinfo.frametype = WMBUS_FRAMEB;
             // Frame format B
             RXinfo.lengthField = RXinfo.pByteIndex[2];
 
@@ -339,17 +339,19 @@ bool rf_mbus::task() {
         // 2 + 1 + RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16);
         rxLength = RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16) + 1;
         // cheat commented verifyCrcBytesCmodeA_local   
-        //rxStatus = verifyCrcBytesCmodeA_local(this->MBbytes + 2, this->MBpacket, rxLength);
+        rxStatus = verifyCrcBytesCmodeA_local(this->MBbytes + 2, this->MBpacket, rxLength);
         // small cheat
         rxStatus = PACKET_OK;
       } else if (RXinfo.frametype == WMBUS_FRAMEB) {
-        Serial.println("wMBus-lib: Processing C1 B frame -- NOT supported yet");
-        rxStatus = PACKET_UNKNOWN_ERROR;
+        Serial.println("wMBus-lib: Processing C1 B frame");
         Serial.print(" FullFrame: ");
         for (int ii=0; ii < RXinfo.length; ii++) {
           Serial.printf("0x%02X, ", (int)(this->MBbytes[ii]));
         }
         Serial.println("");
+        //rxStatus = PACKET_UNKNOWN_ERROR;
+        rxStatus = verifyCrcBytesCmodeB_local(this->MBbytes + 2, this->MBpacket, rxLength);
+        rxStatus = PACKET_OK;
       }
     }
 
