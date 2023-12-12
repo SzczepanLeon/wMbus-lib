@@ -169,14 +169,15 @@ uint16_t verifyCrcBytesCmodeB_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
   bool crcNotOk = false;
 
   Serial.print("   ");
-  while (i < packetSize - 2) {
+  while (i < packetSize - 4) {
     Serial.printf("%02X", pByte[i]);
     crc = crcCalc(crc, pByte[i]);
     pPacket[i] = pByte[i];
     ++i;
   }
   Serial.printf(" crc %04X [%02X%02X] ", crc, pByte[i], pByte[i + 1]);
-    return (PACKET_OK);
+  Serial.println("");
+  return (PACKET_OK);
   
 }
 
