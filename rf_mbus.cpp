@@ -178,8 +178,17 @@ bool rf_mbus::init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs,
                                  TMODE_RF_SETTINGS_BYTES[(i << 1) + 1]);
   }
 
-  Serial.printf("Set CC1101 frequency to %3.3fMHz\n",freq);
-  ELECHOUSE_cc1101.setMHZ(freq);
+  uint32_t freq_reg = uint32_t(freq * 65536 / 26);
+  uint8_t freq2 = (freq_reg >> 16) & 0xFF;
+  uint8_t freq1 = (freq_reg >> 8) & 0xFF;
+  uint8_t freq0 = freq_reg & 0xFF;
+
+  Serial.printf("Set CC1101 frequency to %3.3fMHz [%02X %02X %02X]\n",
+                 freq/1000000, freq2, freq1, freq0);
+                 // don't use setMHZ() -- seems to be broken
+  ELECHOUSE_cc1101.SpiWriteReg(CC1101_FREQ2, freq2);
+  ELECHOUSE_cc1101.SpiWriteReg(CC1101_FREQ1, freq1);
+  ELECHOUSE_cc1101.SpiWriteReg(CC1101_FREQ0, freq0);
 
   ELECHOUSE_cc1101.SpiStrobe(CC1101_SCAL);
 
