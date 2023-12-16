@@ -275,8 +275,8 @@ uint16_t verifyCrcBytesCmodeB(uint8_t* pByte, uint8_t* pPacket, uint16_t packetS
     return (PACKET_CRC_ERROR);
   }
 
-  //pPacket[packetSize - 2] = pByte[packetSize - 2];
-  //pPacket[packetSize - 1] = pByte[packetSize - 1];
+  pPacket[packetSize - 2] = pByte[packetSize - 2];
+  pPacket[packetSize - 1] = pByte[packetSize - 1];
 
   return (PACKET_OK);
 }
