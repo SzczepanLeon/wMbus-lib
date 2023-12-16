@@ -280,7 +280,7 @@ bool rf_mbus::task() {
             }
 
             // preamble + L-field + payload
-            RXinfo.length = RXinfo.lengthField;
+            RXinfo.length = RXinfo.lengthField + 2;
           } else {
             // Unknown type, reset.
             RXinfo.state = 0;
