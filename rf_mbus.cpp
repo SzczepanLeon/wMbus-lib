@@ -370,7 +370,7 @@ bool rf_mbus::task() {
         Serial.println("");
         //rxStatus = PACKET_UNKNOWN_ERROR;
         rxLength = RXinfo.lengthField;
-        rxStatus = verifyCrcBytesCmodeB_local(this->MBbytes, this->MBpacket, rxLength);
+        rxStatus = verifyCrcBytesCmodeB_local(this->MBbytes + 2, this->MBpacket, rxLength);
         rxStatus = PACKET_OK;
       }
     }
