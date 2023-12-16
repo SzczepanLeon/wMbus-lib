@@ -248,7 +248,7 @@ bool rf_mbus::task() {
 
         // If T-mode preamble and sync is used, then the first data byte is either a valid 3outof6 byte or C-mode
         // signaling byte. (http://www.ti.com/lit/an/swra522d/swra522d.pdf#page=6)
-        Serial.println("0: pByte: %02X", RXinfo.pByteIndex[2]);
+        Serial.println("0: pByte: %02X", (int)RXinfo.pByteIndex[2]);
         if (RXinfo.pByteIndex[0] == 0x54) {
           RXinfo.framemode = WMBUS_C1_MODE;
           // If we have determined that it is a C-mode frame, we have to determine if it is Type A or B.
@@ -271,7 +271,7 @@ bool rf_mbus::task() {
             RXinfo.frametype = WMBUS_FRAMEB;
             // Frame format B
             RXinfo.lengthField = RXinfo.pByteIndex[2];
-            Serial.println("1: pByte: %02X", RXinfo.pByteIndex[2]);
+            Serial.println("1: pByte: %02X", (int)RXinfo.pByteIndex[2]);
             if (RXinfo.lengthField < 12 || RXinfo.lengthField == 128) {
               RXinfo.state = 0;
               return false;
@@ -363,7 +363,7 @@ bool rf_mbus::task() {
         // small cheat
         rxStatus = PACKET_OK;
       } else if (RXinfo.frametype == WMBUS_FRAMEB) {
-        Serial.println("2: pByte: %02X", MBbytes[2]);
+        Serial.println("2: pByte: %02X", (int)MBbytes[2]);
         Serial.println("wMBus-lib: Processing C1 B frame");
         Serial.print(" FullFrame: ");
         for (int ii=0; ii < RXinfo.length; ii++) {
