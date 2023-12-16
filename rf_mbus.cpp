@@ -169,13 +169,12 @@ uint16_t verifyCrcBytesCmodeB_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
   bool crcNotOk = false;
 
   Serial.print("   ");
-  while (i < packetSize - 4) {
+  while (i < packetSize) {
     Serial.printf("%02X", pByte[i]);
     crc = crcCalc(crc, pByte[i]);
     pPacket[i] = pByte[i];
     ++i;
   }
-  Serial.printf(" crc %04X [%02X%02X] ", crc, pByte[i], pByte[i + 1]);
   Serial.println("");
   return (PACKET_OK);
   
@@ -371,7 +370,7 @@ bool rf_mbus::task() {
         Serial.println("");
         //rxStatus = PACKET_UNKNOWN_ERROR;
         rxLength = RXinfo.lengthField;
-        rxStatus = verifyCrcBytesCmodeB_local(this->MBbytes + 2, this->MBpacket, rxLength);
+        rxStatus = verifyCrcBytesCmodeB_local(this->MBbytes, this->MBpacket, rxLength);
         rxStatus = PACKET_OK;
       }
     }
