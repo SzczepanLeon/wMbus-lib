@@ -248,6 +248,7 @@ bool rf_mbus::task() {
 
         // If T-mode preamble and sync is used, then the first data byte is either a valid 3outof6 byte or C-mode
         // signaling byte. (http://www.ti.com/lit/an/swra522d/swra522d.pdf#page=6)
+        Serial.Println("0: pByte: %02X", RXinfo.pByteIndex[2]);
         if (RXinfo.pByteIndex[0] == 0x54) {
           RXinfo.framemode = WMBUS_C1_MODE;
           // If we have determined that it is a C-mode frame, we have to determine if it is Type A or B.
