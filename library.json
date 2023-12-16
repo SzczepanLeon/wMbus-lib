@@ -9,7 +9,7 @@
     "type": "git",
     "url": "https://github.com/SzczepanLeon/wMbus-lib"
   },
-  "version": "1.2.22",
+  "version": "1.2.23",
   "frameworks": [
     "arduino"
   ],
