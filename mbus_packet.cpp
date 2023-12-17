@@ -265,6 +265,9 @@ uint16_t verifyCrcBytesCmodeB(uint8_t* pByte, uint8_t* pPacket, uint16_t packetS
   if (packetSize > 131){
       return (PACKET_CRC_ERROR);
   }
+  // To compensate incrrect packet length eg. L=33 -> L=31
+  pPacket[i] = pByte[i]-2;
+  ++i;  
   while (i < packetSize - 2) {
     crc = crcCalc(crc, pByte[i]);
     pPacket[i] = pByte[i];
