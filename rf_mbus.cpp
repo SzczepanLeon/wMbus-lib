@@ -73,7 +73,7 @@ uint8_t rf_mbus::start(bool force) {
 WMbusFrame rf_mbus::get_frame() {
   std::vector<unsigned char> frame;
   if (RXinfo.frametype == WMBUS_FRAMEB){
-    std::vector<unsigned char> frame(this->MBpacket, this->MBpacket + this->MBpacket[0]+1);
+    std::vector<unsigned char> frame(this->MBpacket, this->MBpacket + this->MBpacket[0]);
   }
   else{
     uint8_t len_without_crc = crcRemove(this->MBpacket, packetSize(this->MBpacket[0]));
