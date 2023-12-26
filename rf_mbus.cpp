@@ -174,18 +174,18 @@ uint16_t verifyCrcBytesCmodeB_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
   uint16_t i = 0;
 
   bool crcNotOk = false;
-  Serial.print("crc B local: ");
+  //Serial.print("crc B local: ");
   //To compensate incorrect value of Length eg. L=33 -> L=31
   pPacket[i] = pByte[i] - 2;
-  Serial.printf("%02X", pPacket[i]);
+  //Serial.printf("%02X", pPacket[i]);
   ++i;
   while (i < packetSize) {
-    Serial.printf("%02X", pByte[i]);
+    //Serial.printf("%02X", pByte[i]);
     crc = crcCalc(crc, pByte[i]);
     pPacket[i] = pByte[i];
     ++i;
   }
-  Serial.println("");
+  //Serial.println("");
   return (PACKET_OK);
   
 }
@@ -258,8 +258,8 @@ bool rf_mbus::task() {
 
         // If T-mode preamble and sync is used, then the first data byte is either a valid 3outof6 byte or C-mode
         // signaling byte. (http://www.ti.com/lit/an/swra522d/swra522d.pdf#page=6)
-        Serial.printf("0: pByte: %02X", (int)(this->MBbytes[2]));
-        Serial.println(" ");
+        //Serial.printf("0: pByte: %02X", (int)(this->MBbytes[2]));//For debug 
+        //Serial.println(" ");
         if (RXinfo.pByteIndex[0] == 0x54) {
           RXinfo.framemode = WMBUS_C1_MODE;
           // If we have determined that it is a C-mode frame, we have to determine if it is Type A or B.
@@ -282,8 +282,8 @@ bool rf_mbus::task() {
             RXinfo.frametype = WMBUS_FRAMEB;
             // Frame format B
             RXinfo.lengthField = RXinfo.pByteIndex[2];
-            Serial.printf("1: pByte: %02X", (int)(this->MBbytes[2]));
-            Serial.println(" ");
+            //Serial.printf("1: pByte: %02X", (int)(this->MBbytes[2])); //For debug
+            //Serial.println(" ");
             if (RXinfo.lengthField < 12 || RXinfo.lengthField == 128) {
               RXinfo.state = 0;
               return false;
@@ -375,8 +375,8 @@ bool rf_mbus::task() {
         // small cheat
         rxStatus = PACKET_OK;
       } else if (RXinfo.frametype == WMBUS_FRAMEB) {
-        Serial.printf("2 pByte 0x%02X", (int)(this->MBbytes[2]));
-        Serial.println(" ");
+        //Serial.printf("2 pByte 0x%02X", (int)(this->MBbytes[2]));//For debug
+        //Serial.println(" ");
         Serial.println("wMBus-lib: Processing C1 B frame");
         Serial.print(" FullFrame: ");
         for (int ii=0; ii < RXinfo.length; ii++) {
