@@ -123,7 +123,8 @@ bool decrypt_TPL_AES_CTR_IV(std::vector<unsigned char> &frame,
 
   // The content should be a multiple of 16 since we are using AES CBC mode.
   if (num_bytes_to_decrypt % 16 != 0) {
-    assert (num_bytes_to_decrypt % 16 == 0);
+    // Skip that check for AES CTR mode!  
+    //assert (num_bytes_to_decrypt % 16 == 0); 
   }
 
   unsigned char buffer_data[num_bytes_to_decrypt];
