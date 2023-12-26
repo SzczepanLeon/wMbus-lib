@@ -18,5 +18,8 @@ bool decrypt_TPL_AES_CBC_IV(std::vector<unsigned char> &frame, std::vector<unsig
                             std::vector<unsigned char> &key, unsigned char *iv,
                             int *num_encrypted_bytes,
                             int *num_not_encrypted_at_end);
-
+bool decrypt_TPL_AES_CTR_IV(std::vector<unsigned char> &frame, std::vector<unsigned char>::iterator &pos,
+                            std::vector<unsigned char> &key, unsigned char *iv,
+                            int *num_encrypted_bytes,
+                            int *num_not_encrypted_at_end);
 #endif
