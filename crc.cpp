@@ -38,6 +38,32 @@ uint16_t crcCalc(uint16_t crcReg, uint8_t crcData)
 
   return crcReg;
 }
+//-------------------------------------------------------------------------------------------------------
+//  uint16_t crc16_EN13757(uint8_t *data, size_t len)
+//
+//  DESCRIPTION:
+//      Calculates crc value for given payload by data.  
+//
+//  ARGUMENTS: 
+//      uint8_t*  data  - Data to perform the CRC evaluation.
+//      size_t len - Data length.
+//
+//  RETURN:
+//      Evaluated CRC value (2 Bytes).
+//-------------------------------------------------------------------------------------------------------
+uint16_t crc16_EN13757(uint8_t *data, size_t len)
+{
+    uint16_t crc = 0x0000;
+
+    //assert(len == 0 || data != NULL);
+
+    for (size_t i=0; i<len; ++i)
+    {
+        crc = crcCalc(crc, data[i]);
+    }
+
+    return (~crc);
+}
 
 
 //-------------------------------------------------------------------------------------------------------
