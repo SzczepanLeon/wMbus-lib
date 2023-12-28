@@ -42,7 +42,7 @@ uint16_t crcCalc(uint16_t crcReg, uint8_t crcData)
 //  uint16_t crc16_EN13757(uint8_t *data, size_t len)
 //
 //  DESCRIPTION:
-//      Calculates crc value for given payload by data.  
+//      Calculates CRC value for given payload by data pointer.  
 //
 //  ARGUMENTS: 
 //      uint8_t*  data  - Data to perform the CRC evaluation.
