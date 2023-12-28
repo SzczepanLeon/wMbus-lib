@@ -17,7 +17,8 @@
 //----------------------------------------------------------------------------------
 //  Function declarations
 //----------------------------------------------------------------------------------
-uint16_t crcCalc(uint16_t crcReg, uint8_t crcData); 
+uint16_t crcCalc(uint16_t crcReg, uint8_t crcData);
+uint16_t crc16_EN13757(uint8_t *data, size_t len);
 uint8_t crcRemove(uint8_t *data, uint8_t dataLen);
 
 #endif
