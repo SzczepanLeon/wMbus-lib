@@ -50,7 +50,7 @@ bool decrypt_TPL_AES_CBC_IV(std::vector<unsigned char> &frame,
   std::vector<unsigned char> buffer;
   buffer.insert(buffer.end(), pos, frame.end());
   size_t num_bytes_to_decrypt = frame.end()-pos;
-  uint8_t tpl_num_encr_blocks = 3; //t->tpl_num_encr_blocks
+  uint8_t tpl_num_encr_blocks = ((uint8_t)frame[13] >> 4) & 0x0f;
 
   if (tpl_num_encr_blocks) {
     num_bytes_to_decrypt = tpl_num_encr_blocks*16;
