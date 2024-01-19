@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include <string>
 
-static const char *TAG = "wmbus-lib";
+static const char *TAG_L = "wmbus-lib";
 
 using namespace esphome;
 
