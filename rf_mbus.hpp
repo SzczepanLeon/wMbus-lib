@@ -497,15 +497,3 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
     uint8_t max_wait_time_ = extra_time_;
 
 };
-
-
-const std::string mode_to_string(WmBusFrameMode mode) {
-  switch (mode) {
-    case WMBUS_T1_MODE:
-      return "T1";
-    case WMBUS_C1_MODE:
-      return "C1";
-    default:
-      return "unknown";
-  }
-}
