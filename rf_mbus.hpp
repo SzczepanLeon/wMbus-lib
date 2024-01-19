@@ -93,7 +93,6 @@ typedef struct WMbusFrame {
 //----------------------------------------------------------------------------------
 //  Function declarations
 //----------------------------------------------------------------------------------
-const std::string mode_to_string(WmBusFrameMode mode);
 
 class rf_mbus {
   public:
