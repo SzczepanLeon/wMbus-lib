@@ -331,9 +331,7 @@ class rf_mbus {
     ESP_LOGD(TAG_L, "get_frame()");
   }
   uint8_t len_without_crc = crcRemove(this->MBpacket, packetSize(this->MBpacket[0]));
-  std::vector<unsigned char> frame(this->MBpacket, this->MBpacket + packetSize(this->MBpacket[0]));
-  // std::vector<unsigned char> frame(this->MBbytes, this->MBbytes + RXinfo.length);
-
+  std::vector<unsigned char> frame(this->MBpacket, this->MBpacket + len_without_crc);
   this->returnFrame.frame = frame;
   return this->returnFrame;
 }
