@@ -12,7 +12,7 @@
 
 static const char *TAG_L = "wmbus-lib";
 
-using namespace esphome;
+// using namespace esphome;
 
 //----------------------------------------------------------------------------------
 //  Constants 
