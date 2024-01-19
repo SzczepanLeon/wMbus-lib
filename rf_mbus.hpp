@@ -4,7 +4,7 @@
 
 #pragma once
 
-// #include <esphome/core/log.h>
+#include <esphome/core/log.h>
 // #include "../../src/esphome/core/log.h"
 
 #include <stdint.h>
@@ -12,7 +12,7 @@
 
 static const char *TAG_L = "wmbus-lib";
 
-// using namespace esphome;
+using namespace esphome;
 
 //----------------------------------------------------------------------------------
 //  Constants 
