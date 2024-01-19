@@ -2,11 +2,16 @@
     Filename: rf_mbus.hpp
 ***********************************************************************************/
 
-#ifndef _RF_MBUS_H
-#define _RF_MBUS_H
+#pragma once
+
+#include "esphome/core/log.h"
 
 #include <stdint.h>
 #include <string>
+
+static const char *TAG = "wmbus-lib";
+
+using namespace esphome;
 
 //----------------------------------------------------------------------------------
 //  Constants 
@@ -105,5 +110,3 @@ class rf_mbus {
     uint8_t max_wait_time_ = extra_time_;
 
 };
-
-#endif
