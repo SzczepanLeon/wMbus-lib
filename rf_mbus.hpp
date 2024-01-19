@@ -341,86 +341,6 @@ class rf_mbus {
 
 
   private:
-    uint8_t start(bool force = true) {
-
-  // waiting to long for next part of data?
-  bool reinit_needed = ((millis() - sync_time_) > max_wait_time_) ? true: false;
-
-  if (!force) {
-    if (!reinit_needed) {
-      // already in RX?
-      if (ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) == MARCSTATE_RX) {
-        return 0;
-      }
-    }
-  }
-
-  // init RX here, each time we're idle
-  RXinfo.state = 0;
-  sync_time_ = millis();
-  max_wait_time_ = extra_time_;
-
-  ELECHOUSE_cc1101.SpiStrobe(CC1101_SIDLE);
-  while((ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) != MARCSTATE_IDLE));
-  ELECHOUSE_cc1101.SpiStrobe(CC1101_SFTX);  //flush TXfifo
-  ELECHOUSE_cc1101.SpiStrobe(CC1101_SFRX);  //flush RXfifo
-
-  // Initialize RX info variable
-  RXinfo.lengthField = 0;              // Length Field in the wireless MBUS packet
-  RXinfo.length      = 0;              // Total length of bytes to receive packet
-  RXinfo.bytesLeft   = 0;              // Bytes left to to be read from the RX FIFO
-  RXinfo.pByteIndex  = this->MBbytes;  // Pointer to current position in the byte array
-  RXinfo.complete    = false;          // Packet Received
-  RXinfo.framemode   = WMBUS_UNKNOWN_MODE;
-  RXinfo.frametype   = WMBUS_FRAME_UNKNOWN;
-
-  memset(this->MBbytes, 0, sizeof(this->MBbytes));
-  memset(this->MBpacket, 0, sizeof(this->MBpacket));
-  this->returnFrame.frame.clear();
-  this->returnFrame.rssi = 0;
-  this->returnFrame.lqi = 0;
-  this->returnFrame.framemode = WMBUS_UNKNOWN_MODE;
-
-  // Set RX FIFO threshold to 4 bytes
-  ELECHOUSE_cc1101.SpiWriteReg(CC1101_FIFOTHR, RX_FIFO_START_THRESHOLD);
-  // Set infinite length 
-  ELECHOUSE_cc1101.SpiWriteReg(CC1101_PKTCTRL0, INFINITE_PACKET_LENGTH);
-
-  ELECHOUSE_cc1101.SpiStrobe(CC1101_SRX);
-  while((ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) != MARCSTATE_RX));
-
-  RXinfo.state = 1;
-
-  return 1; // this will indicate we just have re-started RX
-}
-
-    uint8_t gdo0{0};
-    uint8_t gdo2{0};
-    
-    uint8_t MBbytes[584];
-    uint8_t MBpacket[291];
-
-    WMbusFrame returnFrame;
-
-    RXinfoDescr RXinfo;
-
-    uint32_t sync_time_{0};
-    uint8_t extra_time_{20};
-    uint8_t max_wait_time_ = extra_time_;
-
-};
-
-
-const std::string mode_to_string(WmBusFrameMode mode) {
-  switch (mode) {
-    case WMBUS_T1_MODE:
-      return "T1";
-    case WMBUS_C1_MODE:
-      return "C1";
-    default:
-      return "unknown";
-  }
-}
 
 uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t packetSize)
 {
@@ -507,3 +427,86 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
 }
 
 
+
+
+
+    uint8_t start(bool force = true) {
+
+  // waiting to long for next part of data?
+  bool reinit_needed = ((millis() - sync_time_) > max_wait_time_) ? true: false;
+
+  if (!force) {
+    if (!reinit_needed) {
+      // already in RX?
+      if (ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) == MARCSTATE_RX) {
+        return 0;
+      }
+    }
+  }
+
+  // init RX here, each time we're idle
+  RXinfo.state = 0;
+  sync_time_ = millis();
+  max_wait_time_ = extra_time_;
+
+  ELECHOUSE_cc1101.SpiStrobe(CC1101_SIDLE);
+  while((ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) != MARCSTATE_IDLE));
+  ELECHOUSE_cc1101.SpiStrobe(CC1101_SFTX);  //flush TXfifo
+  ELECHOUSE_cc1101.SpiStrobe(CC1101_SFRX);  //flush RXfifo
+
+  // Initialize RX info variable
+  RXinfo.lengthField = 0;              // Length Field in the wireless MBUS packet
+  RXinfo.length      = 0;              // Total length of bytes to receive packet
+  RXinfo.bytesLeft   = 0;              // Bytes left to to be read from the RX FIFO
+  RXinfo.pByteIndex  = this->MBbytes;  // Pointer to current position in the byte array
+  RXinfo.complete    = false;          // Packet Received
+  RXinfo.framemode   = WMBUS_UNKNOWN_MODE;
+  RXinfo.frametype   = WMBUS_FRAME_UNKNOWN;
+
+  memset(this->MBbytes, 0, sizeof(this->MBbytes));
+  memset(this->MBpacket, 0, sizeof(this->MBpacket));
+  this->returnFrame.frame.clear();
+  this->returnFrame.rssi = 0;
+  this->returnFrame.lqi = 0;
+  this->returnFrame.framemode = WMBUS_UNKNOWN_MODE;
+
+  // Set RX FIFO threshold to 4 bytes
+  ELECHOUSE_cc1101.SpiWriteReg(CC1101_FIFOTHR, RX_FIFO_START_THRESHOLD);
+  // Set infinite length 
+  ELECHOUSE_cc1101.SpiWriteReg(CC1101_PKTCTRL0, INFINITE_PACKET_LENGTH);
+
+  ELECHOUSE_cc1101.SpiStrobe(CC1101_SRX);
+  while((ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) != MARCSTATE_RX));
+
+  RXinfo.state = 1;
+
+  return 1; // this will indicate we just have re-started RX
+}
+
+    uint8_t gdo0{0};
+    uint8_t gdo2{0};
+    
+    uint8_t MBbytes[584];
+    uint8_t MBpacket[291];
+
+    WMbusFrame returnFrame;
+
+    RXinfoDescr RXinfo;
+
+    uint32_t sync_time_{0};
+    uint8_t extra_time_{20};
+    uint8_t max_wait_time_ = extra_time_;
+
+};
+
+
+const std::string mode_to_string(WmBusFrameMode mode) {
+  switch (mode) {
+    case WMBUS_T1_MODE:
+      return "T1";
+    case WMBUS_C1_MODE:
+      return "C1";
+    default:
+      return "unknown";
+  }
+}
