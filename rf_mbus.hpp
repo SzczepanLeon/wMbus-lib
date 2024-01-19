@@ -5,7 +5,7 @@
 #pragma once
 
 // #include <esphome/core/log.h>
-#include "../../src/esphome/core/log.h"
+// #include "../../src/esphome/core/log.h"
 
 #include <stdint.h>
 #include <string>
