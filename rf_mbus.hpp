@@ -134,7 +134,11 @@ class rf_mbus {
     Serial.print(cc1101Version);
     Serial.println("'");
     ELECHOUSE_cc1101.SetRx();
-    Serial.println("wMBus-lib: CC1101 initialized");
+    {
+      using namespace esphome;
+      ESP_LOGD(TAG_L, "wMBus-lib: CC1101 initialized");
+    }
+    // Serial.println("wMBus-lib: CC1101 initialized");
     memset(&RXinfo, 0, sizeof(RXinfo));
     delay(4);
   }
@@ -158,10 +162,10 @@ class rf_mbus {
      // RX active, awaiting SYNC
     case 1:
       if (digitalRead(this->gdo2)) {
-          {
-    using namespace esphome;
-        ESP_LOGD(TAG_L, "SYNC pattern detected");
-          }
+        {
+          using namespace esphome;
+          ESP_LOGD(TAG_L, "SYNC pattern detected");
+        }
         RXinfo.state = 2;
         sync_time_ = millis();
       }
@@ -170,26 +174,26 @@ class rf_mbus {
     // awaiting pkt len to read
     case 2:
       if (digitalRead(this->gdo0)) {
-          {
-    using namespace esphome;
-        ESP_LOGD(TAG_L, "Reading data from CC1101 FIFO");
-          }
+        {
+          using namespace esphome;
+          ESP_LOGD(TAG_L, "Reading data from CC1101 FIFO");
+        }
         // Read the 3 first bytes
         ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, 3);
         const uint8_t *currentByte = RXinfo.pByteIndex;
-          {
-    using namespace esphome;
+        {
+          using namespace esphome;
           ESP_LOGD(TAG_L, "First byte in FIFO is 0x%02X", *currentByte);
-          }
+        }
         // Mode C
         if (*currentByte == 0x54) {
           currentByte++;
           RXinfo.framemode = WMBUS_C1_MODE;
           if (RXinfo.pByteIndex[1] == 0xCD) {
-          {
-    using namespace esphome;
-            ESP_LOGD(TAG_L, "Mode C1 frame type A");
-          }
+            {
+              using namespace esphome;
+              ESP_LOGD(TAG_L, "Mode C1 frame type A");
+            }
             currentByte++;
             uint8_t L = *currentByte;
             RXinfo.frametype = WMBUS_FRAMEA;
@@ -199,15 +203,15 @@ class rf_mbus {
               return false;
             }
             RXinfo.length = packetSize(L);
-          {
-    using namespace esphome;
-            ESP_LOGD(TAG_L, "Will have %d (%d) total bytes", RXinfo.length, (2 + 1 + L + 2 * (2 + (L - 10)/16)));
-          }
+            {
+              using namespace esphome;
+              ESP_LOGD(TAG_L, "Will have %d (%d) total bytes", RXinfo.length, (2 + 1 + L + 2 * (2 + (L - 10)/16)));
+            }
           } else if (*currentByte == 0x3D) {
-          {
-    using namespace esphome;
-            ESP_LOGD(TAG_L, "Mode C1 frame type B");
-          }
+            {
+              using namespace esphome;
+              ESP_LOGD(TAG_L, "Mode C1 frame type B");
+            }
             currentByte++;
             uint8_t L = *currentByte;
             RXinfo.frametype = WMBUS_FRAMEB;
@@ -217,10 +221,10 @@ class rf_mbus {
               return false;
             }
             RXinfo.length = 2 + 1 + L;
-          {
-    using namespace esphome;
-            ESP_LOGD(TAG_L, "Will have %d (%d) total bytes", RXinfo.length);
-          }
+            {
+              using namespace esphome;
+              ESP_LOGD(TAG_L, "Will have %d (%d) total bytes", RXinfo.length);
+            }
           } else {
             // Unknown type, reset.
             RXinfo.state = 0;
@@ -234,8 +238,8 @@ class rf_mbus {
           return false;
         } else {
           {
-    using namespace esphome;
-          ESP_LOGD(TAG_L, "Mode T1 frame type A");
+            using namespace esphome;
+            ESP_LOGD(TAG_L, "Mode T1 frame type A");
           }
           currentByte -=2;
           uint8_t L = *currentByte;
@@ -244,8 +248,8 @@ class rf_mbus {
           RXinfo.lengthField = L;
           RXinfo.length = byteSize(packetSize(L));
           {
-    using namespace esphome;
-          ESP_LOGD(TAG_L, "Will have %d total bytes", RXinfo.length);
+            using namespace esphome;
+            ESP_LOGD(TAG_L, "Will have %d total bytes", RXinfo.length);
           }
         }
 
@@ -273,10 +277,10 @@ class rf_mbus {
     // awaiting more data to be read
     case 3:
       if (digitalRead(this->gdo0)) {
-          {
-    using namespace esphome;
-        ESP_LOGD(TAG_L, "Reading more data from CC1101 FIFO");
-          }
+        {
+          using namespace esphome;
+          ESP_LOGD(TAG_L, "Reading more data from CC1101 FIFO");
+        }
         // Read out the RX FIFO
         // Do not empty the FIFO (See the CC110x or 2500 Errata Note)
         uint8_t bytesInFIFO = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x7F;        
@@ -293,10 +297,10 @@ class rf_mbus {
   uint8_t overfl = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x80;
   // END OF PAKET
   if ((!overfl) && (!digitalRead(gdo2)) && (RXinfo.state > 1)) {
-          {
-    using namespace esphome;
-    ESP_LOGD(TAG_L, "Reading last data from CC1101 FIFO");
-          }
+    {
+      using namespace esphome;
+      ESP_LOGD(TAG_L, "Reading last data from CC1101 FIFO");
+    }
     ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, (uint8_t)RXinfo.bytesLeft);
 
     // decode
@@ -304,18 +308,18 @@ class rf_mbus {
     uint16_t rxLength = 0;
 
     if (RXinfo.framemode == WMBUS_T1_MODE) {
-          {
-    using namespace esphome;
-      ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame");
-          }
+      {
+        using namespace esphome;
+        ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame");
+      }
       rxStatus = decodeRXBytesTmode(this->MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
       rxLength = packetSize(this->MBpacket[0]);
     } else if (RXinfo.framemode == WMBUS_C1_MODE) {
       if (RXinfo.frametype == WMBUS_FRAMEA) {
-          {
-    using namespace esphome;
-        ESP_LOGD(TAG_L, ("wMBus-lib: Processing C1 A frame");
-          }
+        {
+          using namespace esphome;
+          ESP_LOGD(TAG_L, "wMBus-lib: Processing C1 A frame");
+        }
         Serial.print(" FullFrame: ");
         for (int ii=0; ii < RXinfo.length; ii++) {
           Serial.printf("0x%02X, ", (int)(this->MBbytes[ii]));
@@ -329,10 +333,10 @@ class rf_mbus {
         // small cheat
         rxStatus = PACKET_OK;
       } else if (RXinfo.frametype == WMBUS_FRAMEB) {
-          {
-    using namespace esphome;
-        ESP_LOGD(TAG_L, "wMBus-lib: Processing C1 B frame -- NOT supported yet");
-          }
+        {
+          using namespace esphome;
+          ESP_LOGD(TAG_L, "wMBus-lib: Processing C1 B frame -- NOT supported yet");
+        }
         rxStatus = PACKET_UNKNOWN_ERROR;
         Serial.print(" FullFrame: ");
         for (int ii=0; ii < RXinfo.length; ii++) {
@@ -367,7 +371,6 @@ class rf_mbus {
 
 
     WMbusFrame get_frame() {
-
   {
     using namespace esphome;
     ESP_LOGD(TAG_L, "get_frame()");
