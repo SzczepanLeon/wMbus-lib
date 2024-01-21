@@ -377,8 +377,7 @@ std::string format_my_hex_pretty(const std::vector<uint16_t> &data) { return for
     uint16_t rxLength = 0;
     {
       using namespace esphome;
-      ESP_LOGD(TAG_L, "Have frame with %d total bytes", RXinfo.length);
-      ESP_LOGD(TAG_L, "Frame %02X %02X %02X %02X", this->MBbytes[0], this->MBbytes[1], this->MBbytes[2], this->MBbytes[3]);
+      ESP_LOGD(TAG_L, "RX bytes %d, L from frame, %d, total frame length", RXinfo.length, RXinfo.lengthField, packetSize(RXinfo.lengthField));
     }
 
     if (RXinfo.framemode == WMBUS_T1_MODE) {
@@ -396,7 +395,6 @@ std::string format_my_hex_pretty(const std::vector<uint16_t> &data) { return for
         using namespace esphome;
         ESP_LOGD(TAG_L, "RAW Frame: %s", rawTelegram.c_str());
         ESP_LOGD(TAG_L, "CRC Frame: %s", telegram.c_str());
-        ESP_LOGD(TAG_L, "Final size %d total bytes, Rx size %d", rxLength, RXinfo.length);
       }
     } else if (RXinfo.framemode == WMBUS_C1_MODE) {
       if (RXinfo.frametype == WMBUS_FRAMEA) {
