@@ -223,7 +223,7 @@ class rf_mbus {
             RXinfo.length = 2 + 1 + L;
             {
               using namespace esphome;
-              ESP_LOGD(TAG_L, "Will have %d (%d) total bytes", RXinfo.length);
+              ESP_LOGD(TAG_L, "Will have %d total bytes", RXinfo.length);
             }
           } else {
             // Unknown type, reset.
@@ -276,6 +276,10 @@ class rf_mbus {
 
     // awaiting more data to be read
     case 3:
+      {
+        using namespace esphome;
+        ESP_LOGD(TAG_L, "Waiting for more data from CC1101 FIFO");
+      }
       if (digitalRead(this->gdo0)) {
         {
           using namespace esphome;
@@ -476,7 +480,10 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
 
   // waiting to long for next part of data?
   bool reinit_needed = ((millis() - sync_time_) > max_wait_time_) ? true: false;
-
+  {
+    using namespace esphome;
+    ESP_LOGD(TAG_L, "start: %d|%d", force, reinit_needed);
+  }
   if (!force) {
     if (!reinit_needed) {
       // already in RX?
@@ -484,6 +491,11 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
         return 0;
       }
     }
+  }
+
+  {
+    using namespace esphome;
+    ESP_LOGD(TAG_L, "start: init RX");
   }
 
   // init RX here, each time we're idle
