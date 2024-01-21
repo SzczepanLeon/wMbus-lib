@@ -377,7 +377,7 @@ std::string format_my_hex_pretty(const std::vector<uint16_t> &data) { return for
     uint16_t rxLength = 0;
     {
       using namespace esphome;
-      ESP_LOGD(TAG_L, "RX bytes %d, L from frame, %d, total frame length", RXinfo.length, RXinfo.lengthField, packetSize(RXinfo.lengthField));
+      ESP_LOGD(TAG_L, "RX bytes %d, L %d (%02X), total frame length %d", RXinfo.length, RXinfo.lengthField, RXinfo.lengthField, packetSize(RXinfo.lengthField));
     }
 
     if (RXinfo.framemode == WMBUS_T1_MODE) {
