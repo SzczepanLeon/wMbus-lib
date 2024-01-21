@@ -391,13 +391,12 @@ std::string format_my_hex_pretty(const std::vector<uint16_t> &data) { return for
       std::vector<unsigned char> RawFrame(this->MBbytes, this->MBbytes + RXinfo.length);
       std::vector<unsigned char> T1Frame(this->MBpacket, this->MBpacket + rxLength);
       std::string rawTelegram = format_my_hex_pretty(RawFrame);
-      std::string telegram = format_my_hex_pretty(T1Frame);      
-      // telegram.erase(std::remove(telegram.begin(), telegram.end(), '.'), telegram.end());
+      std::string telegram = format_my_hex_pretty(T1Frame);
       {
         using namespace esphome;
         ESP_LOGD(TAG_L, "RAW Frame: %s", rawTelegram.c_str());
-        ESP_LOGD(TAG_L, "Frame: %s", telegram.c_str());
-        ESP_LOGD(TAG_L, "Final size %d total bytes", rxLength);
+        ESP_LOGD(TAG_L, "CRC Frame: %s", telegram.c_str());
+        ESP_LOGD(TAG_L, "Final size %d total bytes, Rx size %d", rxLength, RXinfo.length);
       }
     } else if (RXinfo.framemode == WMBUS_C1_MODE) {
       if (RXinfo.frametype == WMBUS_FRAMEA) {
@@ -472,12 +471,13 @@ std::string format_my_hex_pretty(const std::vector<uint16_t> &data) { return for
 
 
     WMbusFrame get_frame() {
-  {
-    using namespace esphome;
-    ESP_LOGD(TAG_L, "get_frame()");
-  }
   uint8_t len_without_crc = crcRemove(this->MBpacket, packetSize(this->MBpacket[0]));
   std::vector<unsigned char> frame(this->MBpacket, this->MBpacket + len_without_crc);
+  std::string telegram = format_my_hex_pretty(frame);
+  {
+    using namespace esphome;
+    ESP_LOGD(TAG_L, "    Frame: %s", telegram.c_str());
+  }
   this->returnFrame.frame = frame;
   return this->returnFrame;
 }
