@@ -189,7 +189,7 @@ class rf_mbus {
         if (*currentByte == 0x54) {
           currentByte++;
           RXinfo.framemode = WMBUS_C1_MODE;
-          if (RXinfo.pByteIndex[1] == 0xCD) {
+          if (*currentByte == 0xCD) {
             {
               using namespace esphome;
               ESP_LOGD(TAG_L, "Mode C1 frame type A");
@@ -301,10 +301,10 @@ class rf_mbus {
   uint8_t overfl = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x80;
   // END OF PAKET
   if ((!overfl) && (!digitalRead(gdo2)) && (RXinfo.state > 1)) {
-    {
-      using namespace esphome;
-      ESP_LOGD(TAG_L, "Reading last data from CC1101 FIFO");
-    }
+    // {
+    //   using namespace esphome;
+    //   ESP_LOGD(TAG_L, "Reading last data from CC1101 FIFO");
+    // }
     ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, (uint8_t)RXinfo.bytesLeft);
 
     // decode
@@ -313,7 +313,7 @@ class rf_mbus {
     {
       using namespace esphome;
       ESP_LOGD(TAG_L, "Have frame with %d total bytes", RXinfo.length);
-      ESP_LOGD(TAG_L, "Frame %02X %02X %02X %02X", this->MBpacket[0], this->MBpacket[1], this->MBpacket[2], this->MBpacket[3]);
+      ESP_LOGD(TAG_L, "Frame %02X %02X %02X %02X", this->MBbytes[0], this->MBbytes[1], this->MBbytes[2], this->MBbytes[3]);
     }
 
     if (RXinfo.framemode == WMBUS_T1_MODE) {
@@ -323,6 +323,10 @@ class rf_mbus {
       }
       rxStatus = decodeRXBytesTmode(this->MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
       rxLength = packetSize(this->MBpacket[0]);
+      {
+        using namespace esphome;
+        ESP_LOGD(TAG_L, "Final size %d total bytes", rxLength);
+      }
     } else if (RXinfo.framemode == WMBUS_C1_MODE) {
       if (RXinfo.frametype == WMBUS_FRAMEA) {
         {
@@ -356,6 +360,10 @@ class rf_mbus {
     }
 
     if (rxStatus == PACKET_OK) {
+      {
+        using namespace esphome;
+        ESP_LOGD(TAG_L, "Packet OK.");
+      }
       this->returnFrame.framemode = RXinfo.framemode;
       RXinfo.complete = true;
       this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
