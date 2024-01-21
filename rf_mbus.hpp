@@ -251,6 +251,8 @@ class rf_mbus {
           //   using namespace esphome;
           //   ESP_LOGD(TAG_L, "Will have %d total bytes", RXinfo.length);
           // }
+          RXinfo.lengthField = bytesDecoded[0];
+          RXinfo.length = byteSize(packetSize(RXinfo.lengthField));
         }
 
         // check if incoming data will fit into buffer
