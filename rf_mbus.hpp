@@ -385,11 +385,14 @@ class rf_mbus {
       }
       rxStatus = decodeRXBytesTmode(this->MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
       rxLength = packetSize(this->MBpacket[0]);
+      std::vector<unsigned char> RawFrame(this->MBbytes, this->MBbytes + RXinfo.length);
       std::vector<unsigned char> T1Frame(this->MBpacket, this->MBpacket + rxLength);
-      std::string telegram = format_hex_pretty(T1Frame);
+      std::string rawTelegram = format_my_hex_pretty(RawFrame);
+      std::string telegram = format_my_hex_pretty(T1Frame);      
       // telegram.erase(std::remove(telegram.begin(), telegram.end(), '.'), telegram.end());
       {
         using namespace esphome;
+        ESP_LOGD(TAG_L, "RAW Frame: %s", rawTelegram.c_str());
         ESP_LOGD(TAG_L, "Frame: %s", telegram.c_str());
         ESP_LOGD(TAG_L, "Final size %d total bytes", rxLength);
       }
