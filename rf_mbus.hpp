@@ -549,7 +549,7 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
     RXinfoDescr RXinfo;
 
     uint32_t sync_time_{0};
-    uint8_t extra_time_{20};
+    uint8_t extra_time_{200};
     uint8_t max_wait_time_ = extra_time_;
 
 };
