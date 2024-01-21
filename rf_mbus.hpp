@@ -276,10 +276,10 @@ class rf_mbus {
 
     // awaiting more data to be read
     case 3:
-      {
-        using namespace esphome;
-        ESP_LOGD(TAG_L, "Waiting for more data from CC1101 FIFO");
-      }
+      // {
+      //   using namespace esphome;
+      //   ESP_LOGD(TAG_L, "Waiting for more data from CC1101 FIFO");
+      // }
       if (digitalRead(this->gdo0)) {
         {
           using namespace esphome;
@@ -310,6 +310,10 @@ class rf_mbus {
     // decode
     uint16_t rxStatus = PACKET_UNKNOWN_ERROR;
     uint16_t rxLength = 0;
+    {
+      using namespace esphome;
+      ESP_LOGD(TAG_L, "Have frame with %d total bytes", RXinfo.length);
+    }
 
     if (RXinfo.framemode == WMBUS_T1_MODE) {
       {
