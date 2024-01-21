@@ -479,11 +479,12 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
     uint8_t start(bool force = true) {
 
   // waiting to long for next part of data?
+  // czy nie wydluzyc czasu w przypadku oczekiwania na SYNC? Tzn czy dac reinit_tylko jak juz jestesmy w petli odbierania danych?
   bool reinit_needed = ((millis() - sync_time_) > max_wait_time_) ? true: false;
-  {
-    using namespace esphome;
-    ESP_LOGD(TAG_L, "start: %d|%d", force, reinit_needed);
-  }
+  // {
+  //   using namespace esphome;
+  //   ESP_LOGD(TAG_L, "start: %d|%d", force, reinit_needed);
+  // }
   if (!force) {
     if (!reinit_needed) {
       // already in RX?
@@ -493,10 +494,10 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
     }
   }
 
-  {
-    using namespace esphome;
-    ESP_LOGD(TAG_L, "start: init RX");
-  }
+  // {
+  //   using namespace esphome;
+  //   ESP_LOGD(TAG_L, "start: init RX");
+  // }
 
   // init RX here, each time we're idle
   RXinfo.state = 0;
