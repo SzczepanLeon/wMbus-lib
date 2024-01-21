@@ -76,7 +76,6 @@ typedef struct RXinfoDescr {
   uint16_t length;              // Total number of bytes to to be read from the RX FIFO
   uint16_t bytesLeft;           // Bytes left to to be read from the RX FIFO
   uint8_t *pByteIndex;          // Pointer to current position in the byte array
-  bool start;                   // Start of Packet
   bool complete;                // Packet received complete
   uint8_t state;
   WmBusFrameMode framemode;
@@ -159,6 +158,7 @@ class rf_mbus {
      // RX active, awaiting SYNC
     case 1:
       if (digitalRead(this->gdo2)) {
+        ESP_LOGD(TAG_L, "SYNC pattern detected");
         RXinfo.state = 2;
         sync_time_ = millis();
       }
@@ -167,45 +167,39 @@ class rf_mbus {
     // awaiting pkt len to read
     case 2:
       if (digitalRead(this->gdo0)) {
+        ESP_LOGD(TAG_L, "Reading data from CC1101 FIFO");
         // Read the 3 first bytes
         ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, 3);
-
-        // - Calculate the total number of bytes to receive -
-
-        // In C-mode we allow receiving T-mode because they are similar. To not break any applications using T-mode,
-        // we do not include results from C-mode in T-mode.
-
-        // If T-mode preamble and sync is used, then the first data byte is either a valid 3outof6 byte or C-mode
-        // signaling byte. (http://www.ti.com/lit/an/swra522d/swra522d.pdf#page=6)
-        if (RXinfo.pByteIndex[0] == 0x54) {
+        const uint8_t *currentByte = RXinfo.pByteIndex;
+        // Mode C
+        if (*currentByte == 0x54) {
+          ESP_LOGD(TAG_L, "First byte in FIFO is 0x%02X", *currentByte);
+          currentByte++;
           RXinfo.framemode = WMBUS_C1_MODE;
-          // If we have determined that it is a C-mode frame, we have to determine if it is Type A or B.
           if (RXinfo.pByteIndex[1] == 0xCD) {
+            ESP_LOGD(TAG_L, "Mode C1 frame type A");
+            currentByte++;
+            uint8_t L = *currentByte;
             RXinfo.frametype = WMBUS_FRAMEA;
-
-            // Frame format A
-            RXinfo.lengthField = RXinfo.pByteIndex[2];
-
-            if (RXinfo.lengthField < 9) {
+            RXinfo.lengthField = L;
+            if (L < 9) {
               RXinfo.state = 0;
               return false;
             }
-
-            // Number of CRC bytes = 2 * ceil((L-9)/16) + 2
-            // Preamble + L-field + payload + CRC bytes
-            RXinfo.length = 2 + 1 + RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16);
-          } else if (RXinfo.pByteIndex[1] == 0x3D) {
+            RXinfo.length = packetSize(L);
+            ESP_LOGD(TAG_L, "Will have %d (%d) total bytes", RXinfo.length, (2 + 1 + L + 2 * (2 + (L - 10)/16)));
+          } else if (*currentByte == 0x3D) {
+            ESP_LOGD(TAG_L, "Mode C1 frame type B");
+            currentByte++;
+            uint8_t L = *currentByte;
             RXinfo.frametype = WMBUS_FRAMEB;
-            // Frame format B
-            RXinfo.lengthField = RXinfo.pByteIndex[2];
-
-            if (RXinfo.lengthField < 12 || RXinfo.lengthField == 128) {
+            RXinfo.lengthField = L;
+            if (L < 12 || L == 128) {
               RXinfo.state = 0;
               return false;
             }
-
-            // preamble + L-field + payload
-            RXinfo.length = 2 + 1 + RXinfo.lengthField;
+            RXinfo.length = 2 + 1 + L;
+            ESP_LOGD(TAG_L, "Will have %d (%d) total bytes", RXinfo.length);
           } else {
             // Unknown type, reset.
             RXinfo.state = 0;
@@ -218,10 +212,14 @@ class rf_mbus {
           RXinfo.state = 0;
           return false;
         } else {
+          ESP_LOGD(TAG_L, "Mode T1 frame type A");
+          currentByte -=2;
+          uint8_t L = *currentByte;
           RXinfo.framemode = WMBUS_T1_MODE;
           RXinfo.frametype = WMBUS_FRAMEA;
-          RXinfo.lengthField = bytesDecoded[0];
-          RXinfo.length = byteSize(packetSize(RXinfo.lengthField));
+          RXinfo.lengthField = L;
+          RXinfo.length = byteSize(packetSize(L));
+          ESP_LOGD(TAG_L, "Will have %d (%d) total bytes", RXinfo.length);
         }
 
         // check if incoming data will fit into buffer
@@ -248,6 +246,7 @@ class rf_mbus {
     // awaiting more data to be read
     case 3:
       if (digitalRead(this->gdo0)) {
+        ESP_LOGD(TAG_L, "Reading more data from CC1101 FIFO");
         // Read out the RX FIFO
         // Do not empty the FIFO (See the CC110x or 2500 Errata Note)
         uint8_t bytesInFIFO = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x7F;        
@@ -264,6 +263,7 @@ class rf_mbus {
   uint8_t overfl = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x80;
   // END OF PAKET
   if ((!overfl) && (!digitalRead(gdo2)) && (RXinfo.state > 1)) {
+    ESP_LOGD(TAG_L, "Reading last data from CC1101 FIFO");
     ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, (uint8_t)RXinfo.bytesLeft);
 
     // decode
@@ -271,12 +271,12 @@ class rf_mbus {
     uint16_t rxLength = 0;
 
     if (RXinfo.framemode == WMBUS_T1_MODE) {
-      Serial.println("wMBus-lib: Processing T1 A frame");
+      ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame");
       rxStatus = decodeRXBytesTmode(this->MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
       rxLength = packetSize(this->MBpacket[0]);
     } else if (RXinfo.framemode == WMBUS_C1_MODE) {
       if (RXinfo.frametype == WMBUS_FRAMEA) {
-        Serial.println("wMBus-lib: Processing C1 A frame");
+        ESP_LOGD(TAG_L, ("wMBus-lib: Processing C1 A frame");
         Serial.print(" FullFrame: ");
         for (int ii=0; ii < RXinfo.length; ii++) {
           Serial.printf("0x%02X, ", (int)(this->MBbytes[ii]));
@@ -290,7 +290,7 @@ class rf_mbus {
         // small cheat
         rxStatus = PACKET_OK;
       } else if (RXinfo.frametype == WMBUS_FRAMEB) {
-        Serial.println("wMBus-lib: Processing C1 B frame -- NOT supported yet");
+        ESP_LOGD(TAG_L, "wMBus-lib: Processing C1 B frame -- NOT supported yet");
         rxStatus = PACKET_UNKNOWN_ERROR;
         Serial.print(" FullFrame: ");
         for (int ii=0; ii < RXinfo.length; ii++) {
