@@ -162,10 +162,10 @@ class rf_mbus {
      // RX active, awaiting SYNC
     case 1:
       if (digitalRead(this->gdo2)) {
-        {
-          using namespace esphome;
-          ESP_LOGD(TAG_L, "SYNC pattern detected");
-        }
+        // {
+        //   using namespace esphome;
+        //   ESP_LOGD(TAG_L, "SYNC pattern detected");
+        // }
         RXinfo.state = 2;
         sync_time_ = millis();
       }
@@ -174,17 +174,17 @@ class rf_mbus {
     // awaiting pkt len to read
     case 2:
       if (digitalRead(this->gdo0)) {
-        {
-          using namespace esphome;
-          ESP_LOGD(TAG_L, "Reading data from CC1101 FIFO");
-        }
+        // {
+        //   using namespace esphome;
+        //   ESP_LOGD(TAG_L, "Reading data from CC1101 FIFO");
+        // }
         // Read the 3 first bytes
         ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, 3);
         const uint8_t *currentByte = RXinfo.pByteIndex;
-        {
-          using namespace esphome;
-          ESP_LOGD(TAG_L, "First byte in FIFO is 0x%02X", *currentByte);
-        }
+        // {
+        //   using namespace esphome;
+        //   ESP_LOGD(TAG_L, "First byte in FIFO is 0x%02X", *currentByte);
+        // }
         // Mode C
         if (*currentByte == 0x54) {
           currentByte++;
