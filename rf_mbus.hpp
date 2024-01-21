@@ -370,13 +370,25 @@ class rf_mbus {
       this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
     }
     else if (rxStatus == PACKET_CODING_ERROR) {
-      Serial.println("wMBus-lib:  Error during decoding '3 out of 6'");
+      {
+        using namespace esphome;
+        ESP_LOGD(TAG_L, "wMBus-lib:  Error during decoding '3 out of 6'");
+      }
+      // Serial.println("wMBus-lib:  Error during decoding '3 out of 6'");
     }
     else if (rxStatus == PACKET_CRC_ERROR) {
-      Serial.println("wMBus-lib:  Error during decoding 'CRC'");
+      {
+        using namespace esphome;
+        ESP_LOGD(TAG_L, "wMBus-lib:  Error during decoding 'CRC'");
+      }
+      // Serial.println("wMBus-lib:  Error during decoding 'CRC'");
     }
     else {
-      Serial.println("wMBus-lib:  Error during decoding 'unknown'");
+      {
+        using namespace esphome;
+        ESP_LOGD(TAG_L, "wMBus-lib:  Error during decoding 'unknown'");
+      }
+      // Serial.println("wMBus-lib:  Error during decoding 'unknown'");
     }
     RXinfo.state = 0;
     return RXinfo.complete;
