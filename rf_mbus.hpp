@@ -24,6 +24,63 @@ static const char *TAG_L = "wmbus-lib";
 
 // using namespace esphome;
 
+
+//////
+
+#include <string>
+#include <vector>
+
+static char format_my_hex_char(uint8_t v) { return v >= 10 ? 'a' + (v - 10) : '0' + v; }
+std::string format_my_hex(const uint8_t *data, size_t length) {
+  std::string ret;
+  ret.resize(length * 2);
+  for (size_t i = 0; i < length; i++) {
+    ret[2 * i] = format_my_hex_char((data[i] & 0xF0) >> 4);
+    ret[2 * i + 1] = format_my_hex_char(data[i] & 0x0F);
+  }
+  return ret;
+}
+std::string format_my_hex(const std::vector<uint8_t> &data) { return format_my_hex(data.data(), data.size()); }
+
+static char format_my_hex_pretty_char(uint8_t v) { return v >= 10 ? 'A' + (v - 10) : '0' + v; }
+std::string format_my_hex_pretty(const uint8_t *data, size_t length) {
+  if (length == 0)
+    return "";
+  std::string ret;
+  ret.resize(3 * length - 1);
+  for (size_t i = 0; i < length; i++) {
+    ret[3 * i] = format_my_hex_pretty_char((data[i] & 0xF0) >> 4);
+    ret[3 * i + 1] = format_my_hex_pretty_char(data[i] & 0x0F);
+    if (i != length - 1)
+      ret[3 * i + 2] = '.';
+  }
+  if (length > 4)
+    return ret + " (" + std::to_string(length) + ")";
+  return ret;
+}
+std::string format_my_hex_pretty(const std::vector<uint8_t> &data) { return format_my_hex_pretty(data.data(), data.size()); }
+
+std::string format_my_hex_pretty(const uint16_t *data, size_t length) {
+  if (length == 0)
+    return "";
+  std::string ret;
+  ret.resize(5 * length - 1);
+  for (size_t i = 0; i < length; i++) {
+    ret[5 * i] = format_my_hex_pretty_char((data[i] & 0xF000) >> 12);
+    ret[5 * i + 1] = format_my_hex_pretty_char((data[i] & 0x0F00) >> 8);
+    ret[5 * i + 2] = format_my_hex_pretty_char((data[i] & 0x00F0) >> 4);
+    ret[5 * i + 3] = format_my_hex_pretty_char(data[i] & 0x000F);
+    if (i != length - 1)
+      ret[5 * i + 2] = '.';
+  }
+  if (length > 4)
+    return ret + " (" + std::to_string(length) + ")";
+  return ret;
+}
+std::string format_my_hex_pretty(const std::vector<uint16_t> &data) { return format_my_hex_pretty(data.data(), data.size()); }
+
+////
+
 //----------------------------------------------------------------------------------
 //  Constants 
 //----------------------------------------------------------------------------------
@@ -241,18 +298,21 @@ class rf_mbus {
           //   using namespace esphome;
           //   ESP_LOGD(TAG_L, "Mode T1 frame type A");
           // }
-          currentByte -=2;
-          uint8_t L = *currentByte;
+          uint8_t L = bytesDecoded[0];
           RXinfo.framemode = WMBUS_T1_MODE;
           RXinfo.frametype = WMBUS_FRAMEA;
           RXinfo.lengthField = L;
           RXinfo.length = byteSize(packetSize(L));
           // {
           //   using namespace esphome;
-          //   ESP_LOGD(TAG_L, "Will have %d total bytes", RXinfo.length);
+          //   ESP_LOGD(TAG_L, "Will have %d total bytes L  %", RXinfo.length, L);
           // }
-          RXinfo.lengthField = bytesDecoded[0];
-          RXinfo.length = byteSize(packetSize(RXinfo.lengthField));
+          // RXinfo.lengthField = bytesDecoded[0];
+          // RXinfo.length = byteSize(packetSize(RXinfo.lengthField));
+          // {
+          //   using namespace esphome;
+          //   ESP_LOGD(TAG_L, "Will have %d total bytes L' %d", RXinfo.length, );
+          // }
         }
 
         // check if incoming data will fit into buffer
@@ -325,8 +385,12 @@ class rf_mbus {
       }
       rxStatus = decodeRXBytesTmode(this->MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
       rxLength = packetSize(this->MBpacket[0]);
+      std::vector<unsigned char> T1Frame(this->MBpacket, this->MBpacket + rxLength);
+      std::string telegram = format_hex_pretty(T1Frame);
+      // telegram.erase(std::remove(telegram.begin(), telegram.end(), '.'), telegram.end());
       {
         using namespace esphome;
+        ESP_LOGD(TAG_L, "Frame: %s", telegram.c_str());
         ESP_LOGD(TAG_L, "Final size %d total bytes", rxLength);
       }
     } else if (RXinfo.framemode == WMBUS_C1_MODE) {
@@ -580,3 +644,4 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
     uint8_t max_wait_time_ = extra_time_;
 
 };
+
