@@ -237,20 +237,20 @@ class rf_mbus {
           RXinfo.state = 0;
           return false;
         } else {
-          {
-            using namespace esphome;
-            ESP_LOGD(TAG_L, "Mode T1 frame type A");
-          }
+          // {
+          //   using namespace esphome;
+          //   ESP_LOGD(TAG_L, "Mode T1 frame type A");
+          // }
           currentByte -=2;
           uint8_t L = *currentByte;
           RXinfo.framemode = WMBUS_T1_MODE;
           RXinfo.frametype = WMBUS_FRAMEA;
           RXinfo.lengthField = L;
           RXinfo.length = byteSize(packetSize(L));
-          {
-            using namespace esphome;
-            ESP_LOGD(TAG_L, "Will have %d total bytes", RXinfo.length);
-          }
+          // {
+          //   using namespace esphome;
+          //   ESP_LOGD(TAG_L, "Will have %d total bytes", RXinfo.length);
+          // }
         }
 
         // check if incoming data will fit into buffer
