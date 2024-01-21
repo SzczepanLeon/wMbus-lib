@@ -281,10 +281,10 @@ class rf_mbus {
       //   ESP_LOGD(TAG_L, "Waiting for more data from CC1101 FIFO");
       // }
       if (digitalRead(this->gdo0)) {
-        {
-          using namespace esphome;
-          ESP_LOGD(TAG_L, "Reading more data from CC1101 FIFO");
-        }
+        // {
+        //   using namespace esphome;
+        //   ESP_LOGD(TAG_L, "Reading more data from CC1101 FIFO");
+        // }
         // Read out the RX FIFO
         // Do not empty the FIFO (See the CC110x or 2500 Errata Note)
         uint8_t bytesInFIFO = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x7F;        
@@ -313,6 +313,7 @@ class rf_mbus {
     {
       using namespace esphome;
       ESP_LOGD(TAG_L, "Have frame with %d total bytes", RXinfo.length);
+      ESP_LOGD(TAG_L, "Frame %02X %02X %02X %02X", this->MBpacket[0], this->MBpacket[1], this->MBpacket[2], this->MBpacket[3]);
     }
 
     if (RXinfo.framemode == WMBUS_T1_MODE) {
