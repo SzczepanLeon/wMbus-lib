@@ -177,12 +177,12 @@ class rf_mbus {
         // Read the 3 first bytes
         ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, 3);
         const uint8_t *currentByte = RXinfo.pByteIndex;
-        // Mode C
-        if (*currentByte == 0x54) {
           {
     using namespace esphome;
           ESP_LOGD(TAG_L, "First byte in FIFO is 0x%02X", *currentByte);
           }
+        // Mode C
+        if (*currentByte == 0x54) {
           currentByte++;
           RXinfo.framemode = WMBUS_C1_MODE;
           if (RXinfo.pByteIndex[1] == 0xCD) {
@@ -245,7 +245,7 @@ class rf_mbus {
           RXinfo.length = byteSize(packetSize(L));
           {
     using namespace esphome;
-          ESP_LOGD(TAG_L, "Will have %d (%d) total bytes", RXinfo.length);
+          ESP_LOGD(TAG_L, "Will have %d total bytes", RXinfo.length);
           }
         }
 
