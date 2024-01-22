@@ -219,7 +219,7 @@ class rf_mbus {
     return retVal;
   }
 
-  static bool mBusDecode(const m_bus_data_t *t_in, WMbusFrame &t_frame) {
+  static bool mBusDecode(m_bus_data_t *t_in, WMbusFrame &t_frame) {
     bool retVal{false};
     if (t_in->mode == 'C') {
       if (t_in->block == 'A') {
