@@ -284,7 +284,7 @@ static bool mBusDecodeFormatA(const m_bus_data_t *t_in, m_bus_data_t *t_out) {
     uint8_t num_data_blocks = (L - 9 + 15) / 16;                                         // Data blocks are 16 bytes long + 2 CRC bytes (not counted in L)
     if ((L < 9) || (((L - 9 + (num_data_blocks * 2))) > (t_in->length - BLOCK1A_SIZE))) {  // add CRC bytes for each data block
         LOG_D("M-Bus: Package (%u) too short for packet Length: %u", t_in->length, L);
-        LOG_I("M-Bus: %u > %u", (L - 9 + (num_data_blocks * 2)), (t_in->length - BLOCK1A_SIZE));
+        LOG_D("M-Bus: %u > %u", (L - 9 + (num_data_blocks * 2)), (t_in->length - BLOCK1A_SIZE));
         return false;
     }
 
@@ -689,7 +689,7 @@ bool task(){
   // uint8_t len_without_crc = crcRemove(this->MBpacket, packetSize(this->MBpacket[0]));
   std::vector<unsigned char> frame(data_out.data, data_out.data + data_out.length);
   std::string telegram = format_my_hex_pretty(frame);
-  LOG_I("    Frame: %s", telegram.c_str());
+  LOG_D("    Frame: %s", telegram.c_str());
   this->returnFrame.frame = frame;
   return this->returnFrame;
 }
