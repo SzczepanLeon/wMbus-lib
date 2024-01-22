@@ -220,8 +220,8 @@ class rf_mbus {
 
   static bool mBusDecode(const m_bus_data_t *t_in, WMbusFrame &t_frame) {
     bool retVal{false};
-    if (t_in->mode == "C") {
-      if (t_in->block == "A") {
+    if (t_in->mode == 'C') {
+      if (t_in->block == 'A') {
         LOG_D("wMBus-lib: Processing C1 A frame");
         std::vector<unsigned char> T1Frame(t_in->data, t_in->data + t_in->length);
         std::string telegram = esphome::format_hex_pretty(T1Frame);
@@ -230,7 +230,7 @@ class rf_mbus {
           retVal = true;
         }
       }
-      else if (t_in->block == "A") {
+      else if (t_in->block == 'A') {
         LOG_D("wMBus-lib: Processing C1 B frame");
         std::vector<unsigned char> frame(t_in->data, t_in->data + t_in->length);
         std::string telegram = esphome::format_hex_pretty(frame);
@@ -240,7 +240,7 @@ class rf_mbus {
         }
       }
     }
-    else if (t_in->mode == "T") {
+    else if (t_in->mode == 'T') {
       LOG_D("wMBus-lib: Processing T1 A frame");
       std::vector<unsigned char> RawFrame(t_in->data, t_in->data + t_in->length);
       std::string rawTelegram = esphome::format_hex_pretty(RawFrame);
@@ -596,8 +596,8 @@ class rf_mbus {
       LOG_D("\n\nRX bytes %d, L %d (%02X), total frame length %d", rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField));
 
 //
-      data_in.mode = "T";
-      data_in.block = "A;"
+      data_in.mode = 'T';
+      data_in.block = 'A';
       if (mBusDecode(&data_in, this->returnFrame)) {
         LOG_D("Decode OK.");
         rxStatus = 1;
