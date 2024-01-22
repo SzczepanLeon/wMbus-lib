@@ -76,6 +76,7 @@ static const char *TAG_L = "wmbus-lib";
 #define ESPHOME
 
 #if defined(ESPHOME)
+  #include "esphome/core/helpers.h"
   #include <esphome/core/log.h>
   #define LOG_VV(...) \
     esphome::ESP_LOGVV(TAG_L, __VA_ARGS__)
@@ -163,54 +164,54 @@ class rf_mbus {
 
 //
 
-static char format_my_hex_char(uint8_t v) { return v >= 10 ? 'a' + (v - 10) : '0' + v; }
-std::string format_my_hex(const uint8_t *data, size_t length) {
-  std::string ret;
-  ret.resize(length * 2);
-  for (size_t i = 0; i < length; i++) {
-    ret[2 * i] = format_my_hex_char((data[i] & 0xF0) >> 4);
-    ret[2 * i + 1] = format_my_hex_char(data[i] & 0x0F);
-  }
-  return ret;
-}
-std::string format_my_hex(const std::vector<uint8_t> &data) { return format_my_hex(data.data(), data.size()); }
+// static char format_my_hex_char(uint8_t v) { return v >= 10 ? 'a' + (v - 10) : '0' + v; }
+// std::string format_my_hex(const uint8_t *data, size_t length) {
+//   std::string ret;
+//   ret.resize(length * 2);
+//   for (size_t i = 0; i < length; i++) {
+//     ret[2 * i] = format_my_hex_char((data[i] & 0xF0) >> 4);
+//     ret[2 * i + 1] = format_my_hex_char(data[i] & 0x0F);
+//   }
+//   return ret;
+// }
+// std::string format_my_hex(const std::vector<uint8_t> &data) { return format_my_hex(data.data(), data.size()); }
 
-static char format_my_hex_pretty_char(uint8_t v) { return v >= 10 ? 'A' + (v - 10) : '0' + v; }
-std::string format_my_hex_pretty(const uint8_t *data, size_t length) {
-  if (length == 0)
-    return "";
-  std::string ret;
-  ret.resize(3 * length - 1);
-  for (size_t i = 0; i < length; i++) {
-    ret[3 * i] = format_my_hex_pretty_char((data[i] & 0xF0) >> 4);
-    ret[3 * i + 1] = format_my_hex_pretty_char(data[i] & 0x0F);
-    if (i != length - 1)
-      ret[3 * i + 2] = '.';
-  }
-  if (length > 4)
-    return ret + " (" + std::to_string(length) + ")";
-  return ret;
-}
-std::string format_my_hex_pretty(const std::vector<uint8_t> &data) { return format_my_hex_pretty(data.data(), data.size()); }
+// static char format_my_hex_pretty_char(uint8_t v) { return v >= 10 ? 'A' + (v - 10) : '0' + v; }
+// std::string format_my_hex_pretty(const uint8_t *data, size_t length) {
+//   if (length == 0)
+//     return "";
+//   std::string ret;
+//   ret.resize(3 * length - 1);
+//   for (size_t i = 0; i < length; i++) {
+//     ret[3 * i] = format_my_hex_pretty_char((data[i] & 0xF0) >> 4);
+//     ret[3 * i + 1] = format_my_hex_pretty_char(data[i] & 0x0F);
+//     if (i != length - 1)
+//       ret[3 * i + 2] = '.';
+//   }
+//   if (length > 4)
+//     return ret + " (" + std::to_string(length) + ")";
+//   return ret;
+// }
+// std::string format_my_hex_pretty(const std::vector<uint8_t> &data) { return format_my_hex_pretty(data.data(), data.size()); }
 
-std::string format_my_hex_pretty(const uint16_t *data, size_t length) {
-  if (length == 0)
-    return "";
-  std::string ret;
-  ret.resize(5 * length - 1);
-  for (size_t i = 0; i < length; i++) {
-    ret[5 * i] = format_my_hex_pretty_char((data[i] & 0xF000) >> 12);
-    ret[5 * i + 1] = format_my_hex_pretty_char((data[i] & 0x0F00) >> 8);
-    ret[5 * i + 2] = format_my_hex_pretty_char((data[i] & 0x00F0) >> 4);
-    ret[5 * i + 3] = format_my_hex_pretty_char(data[i] & 0x000F);
-    if (i != length - 1)
-      ret[5 * i + 2] = '.';
-  }
-  if (length > 4)
-    return ret + " (" + std::to_string(length) + ")";
-  return ret;
-}
-std::string format_my_hex_pretty(const std::vector<uint16_t> &data) { return format_my_hex_pretty(data.data(), data.size()); }
+// std::string format_my_hex_pretty(const uint16_t *data, size_t length) {
+//   if (length == 0)
+//     return "";
+//   std::string ret;
+//   ret.resize(5 * length - 1);
+//   for (size_t i = 0; i < length; i++) {
+//     ret[5 * i] = format_my_hex_pretty_char((data[i] & 0xF000) >> 12);
+//     ret[5 * i + 1] = format_my_hex_pretty_char((data[i] & 0x0F00) >> 8);
+//     ret[5 * i + 2] = format_my_hex_pretty_char((data[i] & 0x00F0) >> 4);
+//     ret[5 * i + 3] = format_my_hex_pretty_char(data[i] & 0x000F);
+//     if (i != length - 1)
+//       ret[5 * i + 2] = '.';
+//   }
+//   if (length > 4)
+//     return ret + " (" + std::to_string(length) + ")";
+//   return ret;
+// }
+// std::string format_my_hex_pretty(const std::vector<uint16_t> &data) { return format_my_hex_pretty(data.data(), data.size()); }
 
 //
 
@@ -259,15 +260,17 @@ static uint16_t crc16(uint8_t const t_message[], uint8_t t_nBytes, uint16_t t_po
 
 // Validate CRC
 static bool crcValid(const uint8_t *t_bytes, uint8_t t_crcOffset) {
-    static const uint16_t CRC_POLY{0x3D65};
-    uint16_t crcCalc = ~crc16(t_bytes, t_crcOffset, CRC_POLY, 0);
-    uint16_t crcRead = (((uint16_t)t_bytes[t_crcOffset] << 8) | t_bytes[t_crcOffset+1]);
-    if (crcCalc != crcRead) {
-        LOG_D("CRC error: Calculated: 0x%40X, Read: 0x%40X", crcCalc, crcRead);
-        return false;
-    }
+  static const uint16_t CRC_POLY{0x3D65};
+  uint16_t crcCalc = ~crc16(t_bytes, t_crcOffset, CRC_POLY, 0);
+  uint16_t crcRead = (((uint16_t)t_bytes[t_crcOffset] << 8) | t_bytes[t_crcOffset+1]);
+  if (crcCalc != crcRead) {
+    LOG_D("CRC error: Calculated: 0x%40X, Read: 0x%40X", crcCalc, crcRead);
+    return false;
+  }
+  else {
     LOG_D("CRC OK:    Calculated: 0x%04X, Read: 0x%04X", crcCalc, crcRead);
     return true;
+  }
 }
 
 
@@ -317,7 +320,7 @@ static bool mBusDecodeFormatB(const m_bus_data_t *t_in, m_bus_data_t *t_out) {
 
     // Check length of package is sufficient
     if ((L < 12) || ((L + 1) > t_in->length)) {  // L includes all bytes except itself
-        printf("M-Bus: Package too short for Length: %u\n", L);
+        LOG_E("M-Bus: Package too short for Length: %u\n", L);
         return false;
     }
 
@@ -387,7 +390,6 @@ static bool decode3OutOf6(m_bus_data_t *t_data,  uint16_t packetSize) {
     // If last byte
     if (bytesRemaining == 1) {
       if(!decode3OutOf6(encodedData, decodedData, true)) {
-        printf("decodingStatus: error 01\n");
         return false;
       }
       bytesRemaining -= 1;
@@ -395,7 +397,6 @@ static bool decode3OutOf6(m_bus_data_t *t_data,  uint16_t packetSize) {
     }
     else {
       if(!decode3OutOf6(encodedData, decodedData)) {
-        printf("decodingStatus: error 02\n");
         return false;
       }
       bytesRemaining -= 2;
@@ -629,7 +630,7 @@ bool task(){
       }
 
       std::vector<unsigned char> RawFrame(data_in.data, data_in.data + data_in.length);
-      std::string rawTelegram = format_my_hex_pretty(RawFrame);
+      std::string rawTelegram = esphome::format_hex_pretty(RawFrame);
       LOG_D("RAW Frame: %s", rawTelegram.c_str());
 
       if (!decode3OutOf6(&data_in, packetSize(RXinfo.lengthField))) {
@@ -638,7 +639,7 @@ bool task(){
         // return RXinfo.complete;
       }
       std::vector<unsigned char> T1Frame(data_in.data, data_in.data + data_in.length);
-      std::string telegram = format_my_hex_pretty(T1Frame);
+      std::string telegram = esphome::format_hex_pretty(T1Frame);
       LOG_D("CRC Frame: %s", telegram.c_str());
       // Decode
       if (!mBusDecodeFormatA(&data_in, &data_out)) {
@@ -683,9 +684,8 @@ bool task(){
 
 
     WMbusFrame get_frame() {
-  // uint8_t len_without_crc = crcRemove(this->MBpacket, packetSize(this->MBpacket[0]));
   std::vector<unsigned char> frame(data_out.data, data_out.data + data_out.length);
-  std::string telegram = format_my_hex_pretty(frame);
+  std::string telegram = esphome::format_hex_pretty(frame);
   LOG_D("    Frame: %s", telegram.c_str());
   this->returnFrame.frame = frame;
   return this->returnFrame;
