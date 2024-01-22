@@ -476,11 +476,11 @@ uint16_t packetSize(uint8_t t_L) {
     Serial.print(cc1101Version);
     Serial.println("'");
     ELECHOUSE_cc1101.SetRx();
-    // {
-    //   using namespace esphome;
-    //   ESP_LOGD(TAG_L, "wMBus-lib: CC1101 initialized");
-    // }
-    esphome::ESP_LOGD(TAG_L, "wMBus-lib: CC1101 initialized");
+    {
+      using namespace esphome;
+      ESP_LOGD(TAG_L, "wMBus-lib: CC1101 initialized");
+    }
+    // esphome::ESP_LOGD(TAG_L, "wMBus-lib: CC1101 initialized");
     // Serial.println("wMBus-lib: CC1101 initialized");
     memset(&RXinfo, 0, sizeof(RXinfo));
     delay(4);
@@ -649,6 +649,8 @@ bool task(){
         using namespace esphome;
         ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame");
       }
+      // esphome::
+      ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame '");
       // rxStatus = decodeRXBytesTmode(this->MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
       // rxLength = packetSize(this->MBpacket[0]);
       //
