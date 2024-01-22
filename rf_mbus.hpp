@@ -644,7 +644,7 @@ uint16_t packetSize(uint8_t t_L) {
     uint16_t rxLength = 0;
     {
       using namespace esphome;
-      ESP_LOGD(TAG_L, "RX bytes %d, L %d (%02X), total frame length %d", RXinfo.length, RXinfo.lengthField, RXinfo.lengthField, packetSize(RXinfo.lengthField));
+      ESP_LOGD(TAG_L, "\nRX bytes %d, L %d (%02X), total frame length %d", RXinfo.length, RXinfo.lengthField, RXinfo.lengthField, packetSize(RXinfo.lengthField));
     }
 
     if (RXinfo.framemode == WMBUS_T1_MODE) {
@@ -676,7 +676,12 @@ uint16_t packetSize(uint8_t t_L) {
         rxStatus = 11;
         return RXinfo.complete;
       }
-
+      std::vector<unsigned char> T1Frame(data_in.data, data_in.data + data_in.length);
+      std::string telegram = format_my_hex_pretty(T1Frame);
+      {
+        using namespace esphome;
+        ESP_LOGD(TAG_L, "CRC Frame: %s", telegram.c_str());
+      }
       // Decode
       if (!mBusDecodeFormatA(&data_in, &data_out)) {
         {
@@ -687,12 +692,7 @@ uint16_t packetSize(uint8_t t_L) {
         return RXinfo.complete;
       }
       //
-      std::vector<unsigned char> T1Frame(data_out.data, data_out.data + data_out.length);
-      std::string telegram = format_my_hex_pretty(T1Frame);
-      {
-        using namespace esphome;
-        ESP_LOGD(TAG_L, "CRC Frame: %s", telegram.c_str());
-      }
+
       rxStatus = 1;
     } else if (RXinfo.framemode == WMBUS_C1_MODE) {
       if (RXinfo.frametype == WMBUS_FRAMEA) {
@@ -811,6 +811,8 @@ uint16_t packetSize(uint8_t t_L) {
   this->returnFrame.rssi = 0;
   this->returnFrame.lqi = 0;
   this->returnFrame.framemode = WMBUS_UNKNOWN_MODE;
+
+  std::fill( std::begin( data_in.data ), std::end( data_in.data ), 0 );
 
   // Set RX FIFO threshold to 4 bytes
   ELECHOUSE_cc1101.SpiWriteReg(CC1101_FIFOTHR, RX_FIFO_START_THRESHOLD);
