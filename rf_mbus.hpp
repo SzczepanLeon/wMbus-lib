@@ -159,61 +159,41 @@ typedef struct WMbusFrame {
 //  Function declarations
 //----------------------------------------------------------------------------------
 
+uint16_t crc16(uint8_t const t_message[], uint8_t t_nBytes, uint16_t t_polynomial, uint16_t t_init) {
+  uint16_t remainder{t_init};
+
+  for (uint8_t byte{0}; byte < t_nBytes; ++byte) {
+    remainder ^= t_message[byte] << 8;
+    for (uint8_t bit{0}; bit < 8; ++bit) {
+      if (remainder & 0x8000) {
+        remainder = (remainder << 1) ^ t_polynomial;
+      }
+      else {
+        remainder = (remainder << 1);
+      }
+    }
+  }
+  return remainder;
+}
+
+// Validate CRC
+bool crcValid(const uint8_t *t_bytes, uint8_t t_crcOffset) {
+  static const uint16_t CRC_POLY{0x3D65};
+  uint16_t crcCalc = ~crc16(t_bytes, t_crcOffset, CRC_POLY, 0);
+  uint16_t crcRead = (((uint16_t)t_bytes[t_crcOffset] << 8) | t_bytes[t_crcOffset+1]);
+  if (crcCalc != crcRead) {
+    LOG_D("CRC error: Calculated: 0x%40X, Read: 0x%40X", crcCalc, crcRead);
+    return false;
+  }
+  else {
+    LOG_D("CRC OK:    Calculated: 0x%04X, Read: 0x%04X", crcCalc, crcRead);
+    return true;
+  }
+}
+
+
 class rf_mbus {
   public:
-
-//
-
-// static char format_my_hex_char(uint8_t v) { return v >= 10 ? 'a' + (v - 10) : '0' + v; }
-// std::string format_my_hex(const uint8_t *data, size_t length) {
-//   std::string ret;
-//   ret.resize(length * 2);
-//   for (size_t i = 0; i < length; i++) {
-//     ret[2 * i] = format_my_hex_char((data[i] & 0xF0) >> 4);
-//     ret[2 * i + 1] = format_my_hex_char(data[i] & 0x0F);
-//   }
-//   return ret;
-// }
-// std::string format_my_hex(const std::vector<uint8_t> &data) { return format_my_hex(data.data(), data.size()); }
-
-// static char format_my_hex_pretty_char(uint8_t v) { return v >= 10 ? 'A' + (v - 10) : '0' + v; }
-// std::string format_my_hex_pretty(const uint8_t *data, size_t length) {
-//   if (length == 0)
-//     return "";
-//   std::string ret;
-//   ret.resize(3 * length - 1);
-//   for (size_t i = 0; i < length; i++) {
-//     ret[3 * i] = format_my_hex_pretty_char((data[i] & 0xF0) >> 4);
-//     ret[3 * i + 1] = format_my_hex_pretty_char(data[i] & 0x0F);
-//     if (i != length - 1)
-//       ret[3 * i + 2] = '.';
-//   }
-//   if (length > 4)
-//     return ret + " (" + std::to_string(length) + ")";
-//   return ret;
-// }
-// std::string format_my_hex_pretty(const std::vector<uint8_t> &data) { return format_my_hex_pretty(data.data(), data.size()); }
-
-// std::string format_my_hex_pretty(const uint16_t *data, size_t length) {
-//   if (length == 0)
-//     return "";
-//   std::string ret;
-//   ret.resize(5 * length - 1);
-//   for (size_t i = 0; i < length; i++) {
-//     ret[5 * i] = format_my_hex_pretty_char((data[i] & 0xF000) >> 12);
-//     ret[5 * i + 1] = format_my_hex_pretty_char((data[i] & 0x0F00) >> 8);
-//     ret[5 * i + 2] = format_my_hex_pretty_char((data[i] & 0x00F0) >> 4);
-//     ret[5 * i + 3] = format_my_hex_pretty_char(data[i] & 0x000F);
-//     if (i != length - 1)
-//       ret[5 * i + 2] = '.';
-//   }
-//   if (length > 4)
-//     return ret + " (" + std::to_string(length) + ")";
-//   return ret;
-// }
-// std::string format_my_hex_pretty(const std::vector<uint16_t> &data) { return format_my_hex_pretty(data.data(), data.size()); }
-
-//
 
 // Mapping from 6 bits to 4 bits. "3of6" coding used for Mode T
 static uint8_t decode3of6(uint8_t t_byte) {
@@ -238,39 +218,6 @@ static uint8_t decode3of6(uint8_t t_byte) {
         default:                 break;  // Error
     }
     return retVal;
-}
-
-
-static uint16_t crc16(uint8_t const t_message[], uint8_t t_nBytes, uint16_t t_polynomial, uint16_t t_init) {
-    uint16_t remainder{t_init};
-
-    for (uint8_t byte{0}; byte < t_nBytes; ++byte) {
-        remainder ^= t_message[byte] << 8;
-        for (uint8_t bit{0}; bit < 8; ++bit) {
-            if (remainder & 0x8000) {
-                remainder = (remainder << 1) ^ t_polynomial;
-            }
-            else {
-                remainder = (remainder << 1);
-            }
-        }
-    }
-    return remainder;
-}
-
-// Validate CRC
-static bool crcValid(const uint8_t *t_bytes, uint8_t t_crcOffset) {
-  static const uint16_t CRC_POLY{0x3D65};
-  uint16_t crcCalc = ~crc16(t_bytes, t_crcOffset, CRC_POLY, 0);
-  uint16_t crcRead = (((uint16_t)t_bytes[t_crcOffset] << 8) | t_bytes[t_crcOffset+1]);
-  if (crcCalc != crcRead) {
-    LOG_D("CRC error: Calculated: 0x%40X, Read: 0x%40X", crcCalc, crcRead);
-    return false;
-  }
-  else {
-    LOG_D("CRC OK:    Calculated: 0x%04X, Read: 0x%04X", crcCalc, crcRead);
-    return true;
-  }
 }
 
 
