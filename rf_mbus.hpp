@@ -243,7 +243,7 @@ class rf_mbus {
     }
     else if (t_in->mode == 'T') {
       LOG_D("wMBus-lib: Processing T1 A frame");
-      std::vector<unsigned char> RawFrame(t_in->data, t_in->data + t_in->length);
+      std::vector<unsigned char> RawFrame(t_in->data, t_in->data + t_in->lengthField);
       std::string rawTelegram = esphome::format_hex_pretty(RawFrame);
       LOG_D("RAW Frame: %s", rawTelegram.c_str());
 
@@ -283,7 +283,7 @@ class rf_mbus {
     }
 
 
-    // t_frame.frame.insert(t_frame.frame.begin(), t_in->data, (BLOCK1A_SIZE - 2));
+    t_frame.frame.insert(t_frame.frame.begin(), t_in->data, (BLOCK1A_SIZE - 2));
     // memcpy(t_out->data, t_in->data, (BLOCK1A_SIZE - 2));
     // Get all remaining data blocks and concatenate into data array (removing CRC bytes)
     for (uint8_t n{0}; n < num_data_blocks; ++n) {
