@@ -79,7 +79,8 @@ static const char *TAG_L = "wmbus-lib";
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
-#define MY_LOG(...) (esphome::ESP_LOGD(TAG_L, __VA_ARGS__);)
+#define MY_LOG(...) \
+  esphome::ESP_LOGD(TAG_L, __VA_ARGS__)
 
 enum RxLoopState : uint8_t {
   INIT_RX       = 0,
