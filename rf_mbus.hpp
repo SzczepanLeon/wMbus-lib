@@ -113,10 +113,8 @@ enum RxLoopState : uint8_t {
     // uint8_t MBbytes[584];
     // uint8_t MBpacket[291];
 
-typedef struct {
-    uint16_t  rxL;
-    uint8_t   data[500];
-} m_bus_data_in_t;
+// rxL max = 500
+// L max   = 300
 
 typedef struct {
     uint16_t  length;
@@ -136,7 +134,7 @@ enum WmBusFrameMode : uint8_t {
   WMBUS_C1_MODE = 2,
 };
 
-typedef struct RXinfoDescr {
+typedef struct RxLoopData {
   uint8_t  lengthField;         // The L-field in the WMBUS packet
   uint16_t length;              // Total number of bytes to to be read from the RX FIFO
   uint16_t bytesLeft;           // Bytes left to to be read from the RX FIFO
@@ -145,7 +143,7 @@ typedef struct RXinfoDescr {
   RxLoopState state;
   WmBusFrameMode framemode;
   WmBusFrameType frametype;
-} RXinfoDescr;
+} RxLoopData;
 
 typedef struct WMbusFrame {
   std::vector<unsigned char> frame{};
@@ -218,9 +216,52 @@ class rf_mbus {
     return retVal;
   }
 
+  static bool mBusDecode(const m_bus_data_t *t_in, WMbusFrame &t_frame) {
+    bool retVal{false};
+    if (t_in->mode == "C") {
+      if (t_in->block == "A") {
+        LOG_D("wMBus-lib: Processing C1 A frame");
+        std::vector<unsigned char> T1Frame(t_in->data, t_in->data + t_in->length);
+        std::string telegram = esphome::format_hex_pretty(T1Frame);
+        LOG_D("CRC Frame: %s", telegram.c_str());
+        if (mBusDecodeFormatA(t_in, t_frame)) {
+          retVal = true;
+        }
+      }
+      else if (t_in->block == "A") {
+        LOG_D("wMBus-lib: Processing C1 B frame");
+        std::vector<unsigned char> frame(t_in->data, t_in->data + t_in->length);
+        std::string telegram = esphome::format_hex_pretty(frame);
+        LOG_D("CRC Frame: %s", telegram.c_str());
+        if (mBusDecodeFormatB(t_in, t_frame)) {
+          retVal = true;
+        }
+      }
+    }
+    else if (t_in->mode == "T") {
+      LOG_D("wMBus-lib: Processing T1 A frame");
+      std::vector<unsigned char> RawFrame(t_in->data, t_in->data + t_in->length);
+      std::string rawTelegram = esphome::format_hex_pretty(RawFrame);
+      LOG_D("RAW Frame: %s", rawTelegram.c_str());
 
-  static bool mBusDecodeFormatA(const m_bus_data_t *t_in, m_bus_data_t *t_out) {
-    uint8_t L = t_in->data[0];
+      if (decode3OutOf6(&data_in, packetSize(rxLoop.lengthField))) {
+        std::vector<unsigned char> frame(t_in->data, t_in->data + t_in->length);
+        std::string telegram = esphome::format_hex_pretty(frame);
+        LOG_D("CRC Frame: %s", telegram.c_str());
+        if (mBusDecodeFormatA(t_in, t_frame)) {
+          retVal = true;
+        }
+      }
+
+    }
+    std::string telegram = esphome::format_hex_pretty(t_frame.frame);
+    LOG_D("    Frame: %s", telegram.c_str());
+    return retVal;
+  }
+
+
+  static bool mBusDecodeFormatA(const m_bus_data_t *t_in, WMbusFrame &t_frame) {  // zmienic OUT na vektor (tzn w strukturze), przekazywac jao referencje bo to C++
+    uint8_t L = t_in->data[0];                                                    // myStruct &t_out
 
     // Store length of data
     t_out->length  = (L - 9 + BLOCK1A_SIZE - 2);
@@ -238,12 +279,14 @@ class rf_mbus {
       return false;
     }
 
-    memcpy(t_out->data, t_in->data, (BLOCK1A_SIZE - 2));
+
+    t_frame.frame.insert(t_frame.frame.begin(), t_in->data, (BLOCK1A_SIZE - 2));
+    // memcpy(t_out->data, t_in->data, (BLOCK1A_SIZE - 2));
     // Get all remaining data blocks and concatenate into data array (removing CRC bytes)
     for (uint8_t n{0}; n < num_data_blocks; ++n) {
       const uint8_t *in_ptr = (t_in->data + BLOCK1A_SIZE + (n * 18));       // Pointer to where data starts. Each block is 18 bytes
       uint8_t *out_ptr      = (t_out->data + (n * 16) + BLOCK1A_SIZE - 2);  // Pointer into block where data starts.
-      uint8_t block_size    = (MIN((L - 9 - (n * 16)), 16) + 2);              // Maximum block size is 16 Data + 2 CRC
+      uint8_t block_size    = (MIN((L - 9 - (n * 16)), 16) + 2);            // Maximum block size is 16 Data + 2 CRC
 
       // Validate CRC
       if (!crcValid(in_ptr, (block_size - 2))) {
@@ -251,13 +294,14 @@ class rf_mbus {
       }
 
       // Get block data
-      memcpy(out_ptr, in_ptr, block_size);
+      t_frame.frame.insert((t_frame.frame.begin() + ((n * 16) + BLOCK1A_SIZE - 2)), in_ptr, block_size);
+      // memcpy(out_ptr, in_ptr, block_size);
     }
 
     return true;
   }
 
-  static bool mBusDecodeFormatB(const m_bus_data_t *t_in, m_bus_data_t *t_out) {
+  static bool mBusDecodeFormatB(const m_bus_data_t *t_in, WMbusFrame &t_frame) {
     uint8_t L = t_in->data[0];
 
     // Store length of data
@@ -273,7 +317,7 @@ class rf_mbus {
     crcValid(t_in->data, MIN((L - 1), (BLOCK1B_SIZE + BLOCK2B_SIZE - 2)));
 
     // Get data from Block 2
-    memcpy(t_out->data, t_in->data, (MIN((L - 11), (BLOCK2B_SIZE - 2))) + BLOCK1B_SIZE);
+    // memcpy(t_out->data, t_in->data, (MIN((L - 11), (BLOCK2B_SIZE - 2))) + BLOCK1B_SIZE);
 
     // Extract extra block for long telegrams (not tested!)
     uint8_t L_OFFSET = (BLOCK1B_SIZE + BLOCK2B_SIZE - 1);  // How much to subtract from L (127)
@@ -284,9 +328,9 @@ class rf_mbus {
       }
 
       // Get Block 3
-      memcpy((t_out->data + (BLOCK2B_SIZE - 2)), (t_in->data + BLOCK2B_SIZE), (L - L_OFFSET - 2));
+      // memcpy((t_out->data + (BLOCK2B_SIZE - 2)), (t_in->data + BLOCK2B_SIZE), (L - L_OFFSET - 2));
 
-      t_out->length -= 2;   // Subtract the two extra CRC bytes
+      // t_out->length -= 2;   // Subtract the two extra CRC bytes
     }
     return true;
   }
@@ -394,7 +438,6 @@ class rf_mbus {
     return nrBytes;
   }
 
-
 //
 
   bool init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs,
@@ -434,7 +477,7 @@ class rf_mbus {
       LOG_D("wMBus-lib: CC1101 version '%d'", cc1101Version);
       ELECHOUSE_cc1101.SetRx();
       LOG_D("wMBus-lib: CC1101 initialized");
-      memset(&RXinfo, 0, sizeof(RXinfo));
+      // memset(&RXinfo, 0, sizeof(RXinfo)); // ??? dlaczego cala struktore zerowalem?
       delay(4);
     }
     else {
@@ -447,7 +490,7 @@ class rf_mbus {
   bool task(){
     uint8_t bytesDecoded[2];
 
-    switch (RXinfo.state) {
+    switch (rxLoop.state) {
       case INIT_RX:
         start();
         return false;
@@ -455,7 +498,7 @@ class rf_mbus {
       // RX active, awaiting SYNC
       case WAIT_FOR_SYNC:
         if (digitalRead(this->gdo2)) {
-          RXinfo.state = WAIT_FOR_DATA;
+          rxLoop.state = WAIT_FOR_DATA;
           sync_time_ = millis();
         }
         break;
@@ -464,75 +507,60 @@ class rf_mbus {
       case WAIT_FOR_DATA:
         if (digitalRead(this->gdo0)) {
           // Read the 3 first bytes,
-          ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, 3);
-          const uint8_t *currentByte = RXinfo.pByteIndex;
+          ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, 3);
+          const uint8_t *currentByte = rxLoop.pByteIndex;
           // ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, data_in.data, 3);
           // const uint8_t *currentByte = data_in.data;
           // Mode C
           if (*currentByte == 0x54) {
             currentByte++;
-            RXinfo.framemode = WMBUS_C1_MODE;
+            // Block A
             if (*currentByte == 0xCD) {
               currentByte++;
               uint8_t L = *currentByte;
-              RXinfo.frametype = WMBUS_FRAMEA;
-              RXinfo.lengthField = L;
-              if (L < 9) {
-                RXinfo.state = INIT_RX;
-                return false;
-              }
-              RXinfo.length = packetSize(L);
+              rxLoop.lengthField = L;
+              rxLoop.length = packetSize(L);
             }
+            // Block B
             else if (*currentByte == 0x3D) {
-              LOG_D("Mode C1 frame type B");
               currentByte++;
               uint8_t L = *currentByte;
-              RXinfo.frametype = WMBUS_FRAMEB;
-              RXinfo.lengthField = L;
-              if (L < 12 || L == 128) {
-                RXinfo.state = INIT_RX;
-                return false;
-              }
-              RXinfo.length = 2 + 1 + L;
-              LOG_D("Will have %d total bytes", RXinfo.length);
+              rxLoop.lengthField = L;
+              rxLoop.length = 2 + 1 + L;
             }
             else {
               // Unknown type, reset.
-              RXinfo.state = INIT_RX;
+              rxLoop.state = INIT_RX;
               return false;
             }
-          // T-Mode
-          // Possible improvment: Check the return value from the deocding function,
-          // and abort RX if coding error.
-          // } else if (decode3outof6(RXinfo.pByteIndex, bytesDecoded, 0) != DECODING_3OUTOF6_OK) {
           }
-          else if (!decode3OutOf6(RXinfo.pByteIndex, bytesDecoded)) {
-            RXinfo.state = INIT_RX;
-            return false;
-          }
-          else {
+          // Mode T Block A
+          else if (decode3OutOf6(rxLoop.pByteIndex, bytesDecoded)) {
             uint8_t L = bytesDecoded[0];
-            RXinfo.framemode = WMBUS_T1_MODE;
-            RXinfo.frametype = WMBUS_FRAMEA;
-            RXinfo.lengthField = L;
-            RXinfo.length = byteSize(packetSize(L));
+            rxLoop.lengthField = L;
+            rxLoop.length = byteSize(packetSize(L));
+          }
+          // Unknown mode
+          else {
+            rxLoop.state = INIT_RX;
+            return false;
           }
 
           // check if incoming data will fit into buffer
-          if (RXinfo.length>sizeof(this->MBbytes)) {
-            RXinfo.state = INIT_RX;
+          if (rxLoop.length>sizeof(this->MBbytes)) {
+            rxLoop.state = INIT_RX;
+            // print ERROR
             return false;
           }
 
-          // we got the length: now start setup chip to receive this much data
-          // - Length mode -
-          ELECHOUSE_cc1101.SpiWriteReg(CC1101_PKTLEN, (uint8_t)(RXinfo.length));
+          // Set CC1101 into length mode.
+          ELECHOUSE_cc1101.SpiWriteReg(CC1101_PKTLEN, (uint8_t)(rxLoop.length));
           ELECHOUSE_cc1101.SpiWriteReg(CC1101_PKTCTRL0, FIXED_PACKET_LENGTH);
 
-          RXinfo.pByteIndex += 3;
-          RXinfo.bytesLeft   = RXinfo.length - 3;
+          rxLoop.pByteIndex += 3;
+          rxLoop.bytesLeft   = rxLoop.length - 3;
 
-          RXinfo.state = READ_DATA;
+          rxLoop.state = READ_DATA;
           max_wait_time_ += extra_time_;
 
           ELECHOUSE_cc1101.SpiWriteReg(CC1101_FIFOTHR, RX_FIFO_THRESHOLD);
@@ -545,10 +573,10 @@ class rf_mbus {
           // Read out the RX FIFO
           // Do not empty the FIFO (See the CC110x or 2500 Errata Note)
           uint8_t bytesInFIFO = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x7F;        
-          ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, bytesInFIFO - 1);
+          ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, bytesInFIFO - 1);
 
-          RXinfo.bytesLeft  -= (bytesInFIFO - 1);
-          RXinfo.pByteIndex += (bytesInFIFO - 1);
+          rxLoop.bytesLeft  -= (bytesInFIFO - 1);
+          rxLoop.pByteIndex += (bytesInFIFO - 1);
 
           max_wait_time_ += extra_time_;
         }
@@ -556,61 +584,29 @@ class rf_mbus {
     }
 
     uint8_t overfl = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x80;
-    // END OF PAKET
-    if ((!overfl) && (!digitalRead(gdo2)) && (RXinfo.state > WAIT_FOR_SYNC)) {
-      ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, (uint8_t)RXinfo.bytesLeft);
+    // Last part of data in FIFO
+    if ((!overfl) && (!digitalRead(gdo2)) && (rxLoop.state > WAIT_FOR_SYNC)) {
+      ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, (uint8_t)rxLoop.bytesLeft);
 
       // decode
       uint16_t rxStatus = 1;
       uint16_t rxLength = 0;
-      LOG_D("\n\nRX bytes %d, L %d (%02X), total frame length %d", RXinfo.length, RXinfo.lengthField, RXinfo.lengthField, packetSize(RXinfo.lengthField));
+      LOG_D("\n\nRX bytes %d, L %d (%02X), total frame length %d", rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField));
 
-      if (RXinfo.framemode == WMBUS_T1_MODE) {
-        LOG_D("wMBus-lib: Processing T1 A frame");
-        // rxStatus = decodeRXBytesTmode(this->MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
-        // rxLength = packetSize(this->MBpacket[0]);
-        //
-        // przepisz dane z bufora
-        data_in.length = RXinfo.length;
-        for (int i = 0; i < RXinfo.length; i++) {
-          data_in.data[i] = MBbytes[i];
-        }
+//
 
-        std::vector<unsigned char> RawFrame(data_in.data, data_in.data + data_in.length);
-        std::string rawTelegram = esphome::format_hex_pretty(RawFrame);
-        LOG_D("RAW Frame: %s", rawTelegram.c_str());
-
-        if (!decode3OutOf6(&data_in, packetSize(RXinfo.lengthField))) {
-          LOG_D("wMBus-lib: blad dekodowania 3z6");
-          rxStatus = 11;
-          // return RXinfo.complete;
-        }
-        std::vector<unsigned char> T1Frame(data_in.data, data_in.data + data_in.length);
-        std::string telegram = esphome::format_hex_pretty(T1Frame);
-        LOG_D("CRC Frame: %s", telegram.c_str());
-        // Decode
-        if (!mBusDecodeFormatA(&data_in, &data_out)) {
-          LOG_D("wMBus-lib: blad dekodowania");
-          rxStatus = 22;
-          // return RXinfo.complete;
-        }
-        //
-
-        // rxStatus = 1;
+      if (mBusDecode(&data_in, this->returnFrame)) {
+        LOG_D("Decode OK.");
+        rxStatus = 1;
       }
-      else if (RXinfo.framemode == WMBUS_C1_MODE) {
-        if (RXinfo.frametype == WMBUS_FRAMEA) {
-          LOG_D("wMBus-lib: Processing C1 A frame");
-        }
-        else if (RXinfo.frametype == WMBUS_FRAMEB) {
-          LOG_D("wMBus-lib: Processing C1 B frame");
-        }
-      }
+//
+
+
 
       if (rxStatus == 1) {
         LOG_D("Packet OK.");
-        this->returnFrame.framemode = RXinfo.framemode;
-        RXinfo.complete = true;
+        this->returnFrame.framemode = rxLoop.framemode;
+        rxLoop.complete = true;
         this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
         this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
       }
@@ -623,20 +619,20 @@ class rf_mbus {
       else {
         LOG_E("wMBus-lib:  Error during decoding 'unknown'");
       }
-      RXinfo.state = INIT_RX;
-      return RXinfo.complete;
+      rxLoop.state = INIT_RX;
+      return rxLoop.complete;
     }
     start(false);
 
-    return RXinfo.complete;
+    return rxLoop.complete;
   }
 
 
   WMbusFrame get_frame() {
-    std::vector<unsigned char> frame(data_out.data, data_out.data + data_out.length);
-    std::string telegram = esphome::format_hex_pretty(frame);
-    LOG_D("    Frame: %s", telegram.c_str());
-    this->returnFrame.frame = frame;
+    // std::vector<unsigned char> frame(data_out.data, data_out.data + data_out.length);
+    // std::string telegram = esphome::format_hex_pretty(frame);
+    // LOG_D("    Frame: %s", telegram.c_str());
+    // this->returnFrame.frame = frame;
     return this->returnFrame;
   }
 
@@ -656,7 +652,7 @@ class rf_mbus {
         }
       }
       // init RX here, each time we're idle
-      RXinfo.state = INIT_RX;
+      rxLoop.state = INIT_RX;
       sync_time_ = millis();
       max_wait_time_ = extra_time_;
 
@@ -666,13 +662,13 @@ class rf_mbus {
       ELECHOUSE_cc1101.SpiStrobe(CC1101_SFRX);  //flush RXfifo
 
       // Initialize RX info variable
-      RXinfo.lengthField = 0;              // Length Field in the wireless MBUS packet
-      RXinfo.length      = 0;              // Total length of bytes to receive packet
-      RXinfo.bytesLeft   = 0;              // Bytes left to to be read from the RX FIFO
-      RXinfo.pByteIndex  = this->MBbytes;  // Pointer to current position in the byte array
-      RXinfo.complete    = false;          // Packet Received
-      RXinfo.framemode   = WMBUS_UNKNOWN_MODE;
-      RXinfo.frametype   = WMBUS_FRAME_UNKNOWN;
+      rxLoop.lengthField = 0;              // Length Field in the wireless MBUS packet
+      rxLoop.length      = 0;              // Total length of bytes to receive packet
+      rxLoop.bytesLeft   = 0;              // Bytes left to to be read from the RX FIFO
+      rxLoop.pByteIndex  = this->MBbytes;  // Pointer to current position in the byte array
+      rxLoop.complete    = false;          // Packet Received
+      rxLoop.framemode   = WMBUS_UNKNOWN_MODE;
+      rxLoop.frametype   = WMBUS_FRAME_UNKNOWN;
 
       memset(this->MBbytes, 0, sizeof(this->MBbytes));
       memset(this->MBpacket, 0, sizeof(this->MBpacket));
@@ -691,7 +687,7 @@ class rf_mbus {
       ELECHOUSE_cc1101.SpiStrobe(CC1101_SRX);
       while((ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) != MARCSTATE_RX));
 
-      RXinfo.state = WAIT_FOR_SYNC;
+      rxLoop.state = WAIT_FOR_SYNC;
 
       return 1; // this will indicate we just have re-started RX
     }
@@ -701,13 +697,16 @@ class rf_mbus {
     
     uint8_t MBbytes[584];
     uint8_t MBpacket[291];
+    //MAX
+    // packetSize:    290
+    // doSciagniecia: 435
 
     m_bus_data_t data_in{0};  // Data from Physical layer decoded to bytes
     m_bus_data_t data_out{0}; // Data for Data Link layer
 
     WMbusFrame returnFrame;
 
-    RXinfoDescr RXinfo;
+    RxLoopData rxLoop;
 
     uint32_t sync_time_{0};
     uint8_t extra_time_{50};
