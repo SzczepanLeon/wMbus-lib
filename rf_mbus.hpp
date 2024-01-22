@@ -73,7 +73,9 @@ static const char *TAG_L = "wmbus-lib";
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
-#if defined(SERIAL_LOG)
+#define ESPHOME
+
+#if defined(ESPHOME)
   #include <esphome/core/log.h>
   #define LOG_VV(...) \
     esphome::ESP_LOGVV(TAG_L, __VA_ARGS__)
@@ -452,7 +454,6 @@ uint16_t packetSize(uint8_t t_L) {
     bool init(uint8_t mosi, uint8_t miso, uint8_t clk, uint8_t cs,
               uint8_t gdo0, uint8_t gdo2, float freq) {
   bool retVal = false;
-  Serial.println("");
   this->gdo0 = gdo0;
   this->gdo2 = gdo2;
   pinMode(this->gdo0, INPUT);
@@ -471,9 +472,9 @@ uint16_t packetSize(uint8_t t_L) {
   uint8_t freq1 = (freq_reg >> 8) & 0xFF;
   uint8_t freq0 = freq_reg & 0xFF;
 
-  Serial.printf("Set CC1101 frequency to %3.3fMHz [%02X %02X %02X]\n",
-                 freq/1000000, freq2, freq1, freq0);
-                 // don't use setMHZ() -- seems to be broken
+  LOG_D("Set CC1101 frequency to %3.3fMHz [%02X %02X %02X]",
+         freq/1000000, freq2, freq1, freq0);
+         // don't use setMHZ() -- seems to be broken
   ELECHOUSE_cc1101.SpiWriteReg(CC1101_FREQ2, freq2);
   ELECHOUSE_cc1101.SpiWriteReg(CC1101_FREQ1, freq1);
   ELECHOUSE_cc1101.SpiWriteReg(CC1101_FREQ0, freq0);
@@ -484,18 +485,14 @@ uint16_t packetSize(uint8_t t_L) {
 
   if ((cc1101Version != 0) && (cc1101Version != 255)) {
     retVal = true;
-    Serial.print("wMBus-lib: CC1101 version '");
-    Serial.print(cc1101Version);
-    Serial.println("'");
+    LOG_D("wMBus-lib: CC1101 version '%d'", cc1101Version);
     ELECHOUSE_cc1101.SetRx();
     LOG_D("wMBus-lib: CC1101 initialized");
-    // esphome::ESP_LOGD(TAG_L, "wMBus-lib: CC1101 initialized");
-    // Serial.println("wMBus-lib: CC1101 initialized");
     memset(&RXinfo, 0, sizeof(RXinfo));
     delay(4);
   }
   else {
-    Serial.println("wMBus-lib: CC1101 initialization FAILED!");
+    LOG_E("wMBus-lib: CC1101 initialization FAILED!");
   }
 
   return retVal;
