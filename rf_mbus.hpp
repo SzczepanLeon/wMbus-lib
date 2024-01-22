@@ -559,7 +559,8 @@ uint16_t packetSize(uint8_t t_L) {
         // T-Mode
         // Possible improvment: Check the return value from the deocding function,
         // and abort RX if coding error.
-        } else if (decode3outof6(RXinfo.pByteIndex, bytesDecoded, 0) != DECODING_3OUTOF6_OK) {
+        // } else if (decode3outof6(RXinfo.pByteIndex, bytesDecoded, 0) != DECODING_3OUTOF6_OK) {
+        } else if (!decode3OutOf6(RXinfo.pByteIndex, bytesDecoded)) {
           RXinfo.state = 0;
           return false;
         } else {
@@ -639,7 +640,7 @@ uint16_t packetSize(uint8_t t_L) {
     ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, (uint8_t)RXinfo.bytesLeft);
 
     // decode
-    uint16_t rxStatus = PACKET_UNKNOWN_ERROR;
+    uint16_t rxStatus = 0;
     uint16_t rxLength = 0;
     {
       using namespace esphome;
@@ -672,6 +673,7 @@ uint16_t packetSize(uint8_t t_L) {
           using namespace esphome;
           ESP_LOGD(TAG_L, "wMBus-lib: blad dekodowania 3z6");
         }
+        rxStatus = 11;
         return RXinfo.complete;
       }
 
@@ -681,6 +683,7 @@ uint16_t packetSize(uint8_t t_L) {
           using namespace esphome;
           ESP_LOGD(TAG_L, "wMBus-lib: blad dekodowania");
         }
+        rxStatus = 22;
         return RXinfo.complete;
       }
       //
@@ -690,6 +693,7 @@ uint16_t packetSize(uint8_t t_L) {
         using namespace esphome;
         ESP_LOGD(TAG_L, "CRC Frame: %s", telegram.c_str());
       }
+      rxStatus = 1;
     } else if (RXinfo.framemode == WMBUS_C1_MODE) {
       if (RXinfo.frametype == WMBUS_FRAMEA) {
         {
@@ -704,7 +708,7 @@ uint16_t packetSize(uint8_t t_L) {
       }
     }
 
-    if (rxStatus == PACKET_OK) {
+    if (rxStatus == 1) {
       {
         using namespace esphome;
         ESP_LOGD(TAG_L, "Packet OK.");
@@ -714,14 +718,14 @@ uint16_t packetSize(uint8_t t_L) {
       this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
       this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
     }
-    else if (rxStatus == PACKET_CODING_ERROR) {
+    else if (rxStatus == 11) {
       {
         using namespace esphome;
         ESP_LOGD(TAG_L, "wMBus-lib:  Error during decoding '3 out of 6'");
       }
       // Serial.println("wMBus-lib:  Error during decoding '3 out of 6'");
     }
-    else if (rxStatus == PACKET_CRC_ERROR) {
+    else if (rxStatus == 22) {
       {
         using namespace esphome;
         ESP_LOGD(TAG_L, "wMBus-lib:  Error during decoding 'CRC'");
