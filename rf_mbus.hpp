@@ -640,11 +640,11 @@ uint16_t packetSize(uint8_t t_L) {
     ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, (uint8_t)RXinfo.bytesLeft);
 
     // decode
-    uint16_t rxStatus = 0;
+    uint16_t rxStatus = 1;
     uint16_t rxLength = 0;
     {
       using namespace esphome;
-      ESP_LOGD(TAG_L, "\nRX bytes %d, L %d (%02X), total frame length %d", RXinfo.length, RXinfo.lengthField, RXinfo.lengthField, packetSize(RXinfo.lengthField));
+      ESP_LOGD(TAG_L, "\n\nRX bytes %d, L %d (%02X), total frame length %d", RXinfo.length, RXinfo.lengthField, RXinfo.lengthField, packetSize(RXinfo.lengthField));
     }
 
     if (RXinfo.framemode == WMBUS_T1_MODE) {
@@ -674,7 +674,7 @@ uint16_t packetSize(uint8_t t_L) {
           ESP_LOGD(TAG_L, "wMBus-lib: blad dekodowania 3z6");
         }
         rxStatus = 11;
-        return RXinfo.complete;
+        // return RXinfo.complete;
       }
       std::vector<unsigned char> T1Frame(data_in.data, data_in.data + data_in.length);
       std::string telegram = format_my_hex_pretty(T1Frame);
@@ -689,11 +689,11 @@ uint16_t packetSize(uint8_t t_L) {
           ESP_LOGD(TAG_L, "wMBus-lib: blad dekodowania");
         }
         rxStatus = 22;
-        return RXinfo.complete;
+        // return RXinfo.complete;
       }
       //
 
-      rxStatus = 1;
+      // rxStatus = 1;
     } else if (RXinfo.framemode == WMBUS_C1_MODE) {
       if (RXinfo.frametype == WMBUS_FRAMEA) {
         {
