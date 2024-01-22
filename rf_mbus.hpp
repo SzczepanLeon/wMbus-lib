@@ -516,8 +516,10 @@ bool task(){
     case WAIT_FOR_DATA:
       if (digitalRead(this->gdo0)) {
         // Read the 3 first bytes,
-        ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, data_in.data, 3);
-        const uint8_t *currentByte = data_in.data;
+        ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, 3);
+        const uint8_t *currentByte = RXinfo.pByteIndex;
+        // ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, data_in.data, 3);
+        // const uint8_t *currentByte = data_in.data;
         // Mode C
         if (*currentByte == 0x54) {
           currentByte++;
@@ -651,7 +653,8 @@ bool task(){
         using namespace esphome;
         ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame");
       }
-      MY_LOG(ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame"));
+      MY_LOG(ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame '"));
+      ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame ''");
       // rxStatus = decodeRXBytesTmode(this->MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
       // rxLength = packetSize(this->MBpacket[0]);
       //
