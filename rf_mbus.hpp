@@ -118,7 +118,6 @@ typedef struct {
     uint8_t   data[500];
 } m_bus_data_in_t;
 
-
 typedef struct {
     uint16_t  length;
     uint8_t   data[500];
@@ -162,7 +161,7 @@ typedef struct WMbusFrame {
 
 class rf_mbus {
   public:
-    uint16_t crc16(uint8_t const t_message[], uint8_t t_nBytes, uint16_t t_polynomial, uint16_t t_init) {
+    static uint16_t crc16(uint8_t const t_message[], uint8_t t_nBytes, uint16_t t_polynomial, uint16_t t_init) {
       uint16_t remainder{t_init};
 
       for (uint8_t byte{0}; byte < t_nBytes; ++byte) {
@@ -180,7 +179,7 @@ class rf_mbus {
     }
 
     // Validate CRC
-    bool crcValid(const uint8_t *t_bytes, uint8_t t_crcOffset) {
+    static bool crcValid(const uint8_t *t_bytes, uint8_t t_crcOffset) {
       static const uint16_t CRC_POLY{0x3D65};
       uint16_t crcCalc = ~crc16(t_bytes, t_crcOffset, CRC_POLY, 0);
       uint16_t crcRead = (((uint16_t)t_bytes[t_crcOffset] << 8) | t_bytes[t_crcOffset+1]);
