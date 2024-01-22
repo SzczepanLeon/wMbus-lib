@@ -119,6 +119,8 @@ enum RxLoopState : uint8_t {
 typedef struct {
     uint16_t  length;
     uint8_t   data[500];
+    char      mode;
+    char      block;
 } m_bus_data_t;
 
 
@@ -264,7 +266,7 @@ class rf_mbus {
     uint8_t L = t_in->data[0];                                                    // myStruct &t_out
 
     // Store length of data
-    t_out->length  = (L - 9 + BLOCK1A_SIZE - 2);
+    // t_out->length  = (L - 9 + BLOCK1A_SIZE - 2);
 
     // Validate CRC
     if (!crcValid(t_in->data, 10)) {
@@ -285,7 +287,7 @@ class rf_mbus {
     // Get all remaining data blocks and concatenate into data array (removing CRC bytes)
     for (uint8_t n{0}; n < num_data_blocks; ++n) {
       const uint8_t *in_ptr = (t_in->data + BLOCK1A_SIZE + (n * 18));       // Pointer to where data starts. Each block is 18 bytes
-      uint8_t *out_ptr      = (t_out->data + (n * 16) + BLOCK1A_SIZE - 2);  // Pointer into block where data starts.
+      // uint8_t *out_ptr      = (t_out->data + (n * 16) + BLOCK1A_SIZE - 2);  // Pointer into block where data starts.
       uint8_t block_size    = (MIN((L - 9 - (n * 16)), 16) + 2);            // Maximum block size is 16 Data + 2 CRC
 
       // Validate CRC
@@ -305,7 +307,7 @@ class rf_mbus {
     uint8_t L = t_in->data[0];
 
     // Store length of data
-    t_out->length = (L - (9 + 2) + BLOCK1B_SIZE - 2);
+    // t_out->length = (L - (9 + 2) + BLOCK1B_SIZE - 2);
 
     // Check length of package is sufficient
     if ((L < 12) || ((L + 1) > t_in->length)) {  // L includes all bytes except itself
@@ -594,7 +596,8 @@ class rf_mbus {
       LOG_D("\n\nRX bytes %d, L %d (%02X), total frame length %d", rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField));
 
 //
-
+      data_in.mode = "T";
+      data_in.block = "A;"
       if (mBusDecode(&data_in, this->returnFrame)) {
         LOG_D("Decode OK.");
         rxStatus = 1;
