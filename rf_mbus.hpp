@@ -649,8 +649,8 @@ bool task(){
         using namespace esphome;
         ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame");
       }
-      // esphome::
-      ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame '");
+      // 
+      esphome::ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame '");
       // rxStatus = decodeRXBytesTmode(this->MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
       // rxLength = packetSize(this->MBpacket[0]);
       //
