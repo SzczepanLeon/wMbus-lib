@@ -118,6 +118,7 @@ enum RxLoopState : uint8_t {
 
 typedef struct {
     uint16_t  length;
+    uint8_t   lengthField;
     uint8_t   data[500];
     char      mode;
     char      block;
@@ -246,7 +247,7 @@ class rf_mbus {
       std::string rawTelegram = esphome::format_hex_pretty(RawFrame);
       LOG_D("RAW Frame: %s", rawTelegram.c_str());
 
-      if (decode3OutOf6(t_in->data, packetSize(rxLoop.lengthField))) {
+      if (decode3OutOf6(t_in->data, packetSize(t_in->lengthField))) {
         std::vector<unsigned char> frame(t_in->data, t_in->data + t_in->length);
         std::string telegram = esphome::format_hex_pretty(frame);
         LOG_D("CRC Frame: %s", telegram.c_str());
@@ -540,6 +541,7 @@ class rf_mbus {
           else if (decode3OutOf6(rxLoop.pByteIndex, bytesDecoded)) {
             uint8_t L = bytesDecoded[0];
             rxLoop.lengthField = L;
+            data_in.lengthField = L;
             rxLoop.length = byteSize(packetSize(L));
           }
           // Unknown mode
@@ -668,7 +670,8 @@ class rf_mbus {
       rxLoop.lengthField = 0;              // Length Field in the wireless MBUS packet
       rxLoop.length      = 0;              // Total length of bytes to receive packet
       rxLoop.bytesLeft   = 0;              // Bytes left to to be read from the RX FIFO
-      rxLoop.pByteIndex  = this->MBbytes;  // Pointer to current position in the byte array
+      // rxLoop.pByteIndex  = this->MBbytes;  // Pointer to current position in the byte array
+      rxLoop.pByteIndex  = data_in.data;  // Pointer to current position in the byte array
       rxLoop.complete    = false;          // Packet Received
       rxLoop.framemode   = WMBUS_UNKNOWN_MODE;
       rxLoop.frametype   = WMBUS_FRAME_UNKNOWN;
@@ -681,6 +684,10 @@ class rf_mbus {
       this->returnFrame.framemode = WMBUS_UNKNOWN_MODE;
 
       std::fill( std::begin( data_in.data ), std::end( data_in.data ), 0 );
+      data_in.length = 0;
+      data_in.lengthField = 0;
+      data_in.mode = 'X';
+      data_in.block = 'X';
 
       // Set RX FIFO threshold to 4 bytes
       ELECHOUSE_cc1101.SpiWriteReg(CC1101_FIFOTHR, RX_FIFO_START_THRESHOLD);
