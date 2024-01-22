@@ -79,9 +79,25 @@ static const char *TAG_L = "wmbus-lib";
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
+enum RxLoopState : uint8_t {
+  INIT_RX       = 0,
+  WAIT_FOR_SYNC = 1,
+  WAIT_FOR_DATA = 2,
+  READ_DATA     = 3,
+};
+
+    // uint8_t MBbytes[584];
+    // uint8_t MBpacket[291];
+
+typedef struct {
+    uint16_t  rxL;
+    uint8_t   data[500];
+} m_bus_data_in_t;
+
+
 typedef struct {
     uint16_t  length;
-    uint8_t   data[512];
+    uint8_t   data[500];
 } m_bus_data_t;
 
 
@@ -103,7 +119,7 @@ typedef struct RXinfoDescr {
   uint16_t bytesLeft;           // Bytes left to to be read from the RX FIFO
   uint8_t *pByteIndex;          // Pointer to current position in the byte array
   bool complete;                // Packet received complete
-  uint8_t state;
+  RxLoopState state;
   WmBusFrameMode framemode;
   WmBusFrameType frametype;
 } RXinfoDescr;
@@ -475,64 +491,44 @@ uint16_t packetSize(uint8_t t_L) {
   return retVal;
 }
 
-    bool task(){
+bool task(){
   uint8_t bytesDecoded[2];
 
   switch (RXinfo.state) {
-    case 0:
+    case INIT_RX:
       {
         start();
       }
       return false;
 
      // RX active, awaiting SYNC
-    case 1:
+    case WAIT_FOR_SYNC:
       if (digitalRead(this->gdo2)) {
-        // {
-        //   using namespace esphome;
-        //   ESP_LOGD(TAG_L, "SYNC pattern detected");
-        // }
-        RXinfo.state = 2;
+        RXinfo.state = WAIT_FOR_DATA;
         sync_time_ = millis();
       }
       break;
 
     // awaiting pkt len to read
-    case 2:
+    case WAIT_FOR_DATA:
       if (digitalRead(this->gdo0)) {
-        // {
-        //   using namespace esphome;
-        //   ESP_LOGD(TAG_L, "Reading data from CC1101 FIFO");
-        // }
-        // Read the 3 first bytes
-        ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, 3);
-        const uint8_t *currentByte = RXinfo.pByteIndex;
-        // {
-        //   using namespace esphome;
-        //   ESP_LOGD(TAG_L, "First byte in FIFO is 0x%02X", *currentByte);
-        // }
+        // Read the 3 first bytes,
+        ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, data_in.data, 3);
+        const uint8_t *currentByte = data_in.data;
         // Mode C
         if (*currentByte == 0x54) {
           currentByte++;
           RXinfo.framemode = WMBUS_C1_MODE;
           if (*currentByte == 0xCD) {
-            {
-              using namespace esphome;
-              ESP_LOGD(TAG_L, "Mode C1 frame type A");
-            }
             currentByte++;
             uint8_t L = *currentByte;
             RXinfo.frametype = WMBUS_FRAMEA;
             RXinfo.lengthField = L;
             if (L < 9) {
-              RXinfo.state = 0;
+              RXinfo.state = INIT_RX;
               return false;
             }
             RXinfo.length = packetSize(L);
-            {
-              using namespace esphome;
-              ESP_LOGD(TAG_L, "Will have %d (%d) total bytes", RXinfo.length, (2 + 1 + L + 2 * (2 + (L - 10)/16)));
-            }
           } else if (*currentByte == 0x3D) {
             {
               using namespace esphome;
@@ -543,7 +539,7 @@ uint16_t packetSize(uint8_t t_L) {
             RXinfo.frametype = WMBUS_FRAMEB;
             RXinfo.lengthField = L;
             if (L < 12 || L == 128) {
-              RXinfo.state = 0;
+              RXinfo.state = INIT_RX;
               return false;
             }
             RXinfo.length = 2 + 1 + L;
@@ -553,7 +549,7 @@ uint16_t packetSize(uint8_t t_L) {
             }
           } else {
             // Unknown type, reset.
-            RXinfo.state = 0;
+            RXinfo.state = INIT_RX;
             return false;
           }
         // T-Mode
@@ -561,7 +557,7 @@ uint16_t packetSize(uint8_t t_L) {
         // and abort RX if coding error.
         // } else if (decode3outof6(RXinfo.pByteIndex, bytesDecoded, 0) != DECODING_3OUTOF6_OK) {
         } else if (!decode3OutOf6(RXinfo.pByteIndex, bytesDecoded)) {
-          RXinfo.state = 0;
+          RXinfo.state = INIT_RX;
           return false;
         } else {
           // {
@@ -587,7 +583,7 @@ uint16_t packetSize(uint8_t t_L) {
 
         // check if incoming data will fit into buffer
         if (RXinfo.length>sizeof(this->MBbytes)) {
-          RXinfo.state = 0;
+          RXinfo.state = INIT_RX;
           return false;
         }
 
@@ -599,7 +595,7 @@ uint16_t packetSize(uint8_t t_L) {
         RXinfo.pByteIndex += 3;
         RXinfo.bytesLeft   = RXinfo.length - 3;
 
-        RXinfo.state = 3;
+        RXinfo.state = READ_DATA;
         max_wait_time_ += extra_time_;
 
         ELECHOUSE_cc1101.SpiWriteReg(CC1101_FIFOTHR, RX_FIFO_THRESHOLD);
@@ -607,7 +603,7 @@ uint16_t packetSize(uint8_t t_L) {
       break;
 
     // awaiting more data to be read
-    case 3:
+    case READ_DATA:
       // {
       //   using namespace esphome;
       //   ESP_LOGD(TAG_L, "Waiting for more data from CC1101 FIFO");
@@ -632,7 +628,7 @@ uint16_t packetSize(uint8_t t_L) {
 
   uint8_t overfl = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x80;
   // END OF PAKET
-  if ((!overfl) && (!digitalRead(gdo2)) && (RXinfo.state > 1)) {
+  if ((!overfl) && (!digitalRead(gdo2)) && (RXinfo.state > WAIT_ROF_SYNC)) {
     // {
     //   using namespace esphome;
     //   ESP_LOGD(TAG_L, "Reading last data from CC1101 FIFO");
@@ -739,7 +735,7 @@ uint16_t packetSize(uint8_t t_L) {
       }
       // Serial.println("wMBus-lib:  Error during decoding 'unknown'");
     }
-    RXinfo.state = 0;
+    RXinfo.state = INIT_RX;
     return RXinfo.complete;
   }
   start(false);
@@ -787,7 +783,7 @@ uint16_t packetSize(uint8_t t_L) {
   // }
 
   // init RX here, each time we're idle
-  RXinfo.state = 0;
+  RXinfo.state = INIT_RX;
   sync_time_ = millis();
   max_wait_time_ = extra_time_;
 
@@ -822,7 +818,7 @@ uint16_t packetSize(uint8_t t_L) {
   ELECHOUSE_cc1101.SpiStrobe(CC1101_SRX);
   while((ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) != MARCSTATE_RX));
 
-  RXinfo.state = 1;
+  RXinfo.state = WAIT_FOR_SYNC;
 
   return 1; // this will indicate we just have re-started RX
 }
