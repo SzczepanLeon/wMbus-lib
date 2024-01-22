@@ -476,10 +476,11 @@ uint16_t packetSize(uint8_t t_L) {
     Serial.print(cc1101Version);
     Serial.println("'");
     ELECHOUSE_cc1101.SetRx();
-    {
-      using namespace esphome;
-      ESP_LOGD(TAG_L, "wMBus-lib: CC1101 initialized");
-    }
+    // {
+    //   using namespace esphome;
+    //   ESP_LOGD(TAG_L, "wMBus-lib: CC1101 initialized");
+    // }
+    esphome::ESP_LOGD(TAG_L, "wMBus-lib: CC1101 initialized");
     // Serial.println("wMBus-lib: CC1101 initialized");
     memset(&RXinfo, 0, sizeof(RXinfo));
     delay(4);
@@ -628,7 +629,7 @@ bool task(){
 
   uint8_t overfl = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x80;
   // END OF PAKET
-  if ((!overfl) && (!digitalRead(gdo2)) && (RXinfo.state > WAIT_ROF_SYNC)) {
+  if ((!overfl) && (!digitalRead(gdo2)) && (RXinfo.state > WAIT_FOR_SYNC)) {
     // {
     //   using namespace esphome;
     //   ESP_LOGD(TAG_L, "Reading last data from CC1101 FIFO");
