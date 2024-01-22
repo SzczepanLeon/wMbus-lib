@@ -246,7 +246,7 @@ class rf_mbus {
       std::string rawTelegram = esphome::format_hex_pretty(RawFrame);
       LOG_D("RAW Frame: %s", rawTelegram.c_str());
 
-      if (decode3OutOf6(&data_in, packetSize(rxLoop.lengthField))) {
+      if (decode3OutOf6(t_in->data, packetSize(rxLoop.lengthField))) {
         std::vector<unsigned char> frame(t_in->data, t_in->data + t_in->length);
         std::string telegram = esphome::format_hex_pretty(frame);
         LOG_D("CRC Frame: %s", telegram.c_str());
