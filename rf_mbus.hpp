@@ -79,7 +79,7 @@ static const char *TAG_L = "wmbus-lib";
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
-#define MY_LOG(A) ({ using namespace esphome; (A); })
+#define MY_LOG(...) (esphome::ESP_LOGD(TAG_L, __VA_ARGS__);)
 
 enum RxLoopState : uint8_t {
   INIT_RX       = 0,
@@ -244,13 +244,13 @@ static bool crcValid(const uint8_t *t_bytes, uint8_t t_crcOffset) {
     if (crcCalc != crcRead) {
         {
           using namespace esphome;
-          ESP_LOGD(TAG_L, "M-Bus: CRC error: Calculated 0x%0X, Read: 0x%0X", crcCalc, crcRead);
+          ESP_LOGD(TAG_L, "CRC error: Calculated: 0x%40X, Read: 0x%40X", crcCalc, crcRead);
         }
         return false;
     }
     {
       using namespace esphome;
-      ESP_LOGD(TAG_L, "M-Bus: CRC OK: Calculated 0x%0X, Read: 0x%0X", crcCalc, crcRead);
+      ESP_LOGD(TAG_L, "CRC OK:    Calculated: 0x%04X, Read: 0x%04X", crcCalc, crcRead);
     }
     return true;
 }
@@ -647,14 +647,16 @@ bool task(){
       using namespace esphome;
       ESP_LOGD(TAG_L, "\n\nRX bytes %d, L %d (%02X), total frame length %d", RXinfo.length, RXinfo.lengthField, RXinfo.lengthField, packetSize(RXinfo.lengthField));
     }
+    esphome::ESP_LOGD(TAG_L, "\n\nRX bytes %d, L %d (%02X), total frame length %d '", RXinfo.length, RXinfo.lengthField, RXinfo.lengthField, packetSize(RXinfo.lengthField));
+    MY_LOG("\n\nRX bytes %d, L %d (%02X), total frame length %d ''", RXinfo.length, RXinfo.lengthField, RXinfo.lengthField, packetSize(RXinfo.lengthField));
 
     if (RXinfo.framemode == WMBUS_T1_MODE) {
       {
         using namespace esphome;
         ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame");
       }
-      MY_LOG(ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame '"));
-      esphome::ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame ''");
+      // MY_LOG(ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame '"));
+      // esphome::ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame ''");
       // rxStatus = decodeRXBytesTmode(this->MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
       // rxLength = packetSize(this->MBpacket[0]);
       //
