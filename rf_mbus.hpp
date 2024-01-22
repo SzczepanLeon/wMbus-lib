@@ -73,7 +73,7 @@ static const char *TAG_L = "wmbus-lib";
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
-#if defined(ESPHOME_VERSION)
+#if defined(SERIAL_LOG)
   #include <esphome/core/log.h>
   #define LOG_VV(...) \
     esphome::ESP_LOGVV(TAG_L, __VA_ARGS__)
@@ -93,8 +93,7 @@ static const char *TAG_L = "wmbus-lib";
   #define LOG_D(...) \
     Serial.printf(__VA_ARGS__);
   #define LOG_I(...) \
-    esphome::ESP_LOGI("brak LOG", __VA_ARGS__)
-    // Serial.printf(__VA_ARGS__);
+    Serial.printf(__VA_ARGS__);
   #define LOG_E(...) \
     Serial.printf(__VA_ARGS__);
 #endif
