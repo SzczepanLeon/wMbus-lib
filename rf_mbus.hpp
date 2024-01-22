@@ -10,11 +10,11 @@
 #include <stdint.h>
 #include <string>
 
-#include "utils.hpp"
-#include "crc.hpp"
-#include "rf_mbus.hpp"
-#include "mbus_packet.hpp"
-#include "3outof6.hpp"
+// #include "utils.hpp"
+// #include "crc.hpp"
+// #include "rf_mbus.hpp"
+// #include "mbus_packet.hpp"
+// #include "3outof6.hpp"
 #include "tmode_rf_settings.hpp"
 
 #include <ELECHOUSE_CC1101_SRC_DRV.h>
@@ -64,6 +64,26 @@ static const char *TAG_L = "wmbus-lib";
 
 #define FIXED_PACKET_LENGTH        0x00
 #define INFINITE_PACKET_LENGTH     0x02
+
+
+#define BLOCK1A_SIZE 12     // Size of Block 1, format A
+#define BLOCK1B_SIZE 10     // Size of Block 1, format B
+#define BLOCK2B_SIZE 118    // Maximum size of Block 2, format B
+#define BLOCK1_2B_SIZE 128
+
+// Helper macros, collides with MSVC's stdlib.h unless NOMINMAX is used
+#ifndef MAX
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#endif
+#ifndef MIN
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
+
+typedef struct {
+    uint16_t  length;
+    uint8_t   data[512];
+} m_bus_data_t;
+
 
 enum WmBusFrameType : uint8_t {
   WMBUS_FRAME_UNKNOWN = 0,
@@ -152,6 +172,252 @@ std::string format_my_hex_pretty(const uint16_t *data, size_t length) {
   return ret;
 }
 std::string format_my_hex_pretty(const std::vector<uint16_t> &data) { return format_my_hex_pretty(data.data(), data.size()); }
+
+//
+
+// Mapping from 6 bits to 4 bits. "3of6" coding used for Mode T
+static uint8_t decode3of6(uint8_t t_byte) {
+    uint8_t retVal{0xFF}; // Error
+    switch(t_byte) {
+        case 22:  retVal = 0x0;  break;  // 0x16
+        case 13:  retVal = 0x1;  break;  // 0x0D
+        case 14:  retVal = 0x2;  break;  // 0x0E
+        case 11:  retVal = 0x3;  break;  // 0x0B
+        case 28:  retVal = 0x4;  break;  // 0x1C
+        case 25:  retVal = 0x5;  break;  // 0x19
+        case 26:  retVal = 0x6;  break;  // 0x1A
+        case 19:  retVal = 0x7;  break;  // 0x13
+        case 44:  retVal = 0x8;  break;  // 0x2C
+        case 37:  retVal = 0x9;  break;  // 0x25
+        case 38:  retVal = 0xA;  break;  // 0x26
+        case 35:  retVal = 0xB;  break;  // 0x23
+        case 52:  retVal = 0xC;  break;  // 0x34
+        case 49:  retVal = 0xD;  break;  // 0x31
+        case 50:  retVal = 0xE;  break;  // 0x32
+        case 41:  retVal = 0xF;  break;  // 0x29
+        default:                 break;  // Error
+    }
+    return retVal;
+}
+
+
+uint16_t crc16(uint8_t const t_message[], uint8_t t_nBytes, uint16_t t_polynomial, uint16_t t_init) {
+    uint16_t remainder{t_init};
+
+    for (uint8_t byte{0}; byte < t_nBytes; ++byte) {
+        remainder ^= t_message[byte] << 8;
+        for (uint8_t bit{0}; bit < 8; ++bit) {
+            if (remainder & 0x8000) {
+                remainder = (remainder << 1) ^ t_polynomial;
+            }
+            else {
+                remainder = (remainder << 1);
+            }
+        }
+    }
+    return remainder;
+}
+
+// Validate CRC
+static bool crcValid(const uint8_t *t_bytes, uint8_t t_crcOffset) {
+    static const uint16_t CRC_POLY{0x3D65};
+    uint16_t crcCalc = ~crc16(t_bytes, t_crcOffset, CRC_POLY, 0);
+    uint16_t crcRead = (((uint16_t)t_bytes[t_crcOffset] << 8) | t_bytes[t_crcOffset+1]);
+    if (crcCalc != crcRead) {
+        {
+          using namespace esphome;
+          ESP_LOGD(TAG_L, "M-Bus: CRC error: Calculated 0x%0X, Read: 0x%0X", crcCalc, crcRead);
+        }
+        return false;
+    }
+    {
+      using namespace esphome;
+      ESP_LOGD(TAG_L, "M-Bus: CRC OK: Calculated 0x%0X, Read: 0x%0X", crcCalc, crcRead);
+    }
+    return true;
+}
+
+
+static bool mBusDecodeFormatA(const m_bus_data_t *t_in, m_bus_data_t *t_out) {
+    uint8_t L = t_in->data[0];
+
+    // Store length of data
+    t_out->length  = (L - 9 + BLOCK1A_SIZE - 2);
+
+    // Validate CRC
+    if (!crcValid(t_in->data, 10)) {
+        return false;
+    }
+
+    // Check length of package is sufficient
+    uint8_t num_data_blocks = (L - 9 + 15) / 16;                                         // Data blocks are 16 bytes long + 2 CRC bytes (not counted in L)
+    if ((L < 9) || (((L - 9 + (num_data_blocks * 2))) > (t_in->length - BLOCK1A_SIZE))) {  // add CRC bytes for each data block
+        {
+          using namespace esphome;
+          ESP_LOGD(TAG_L, "M-Bus: Package (%u) too short for packet Length: %u", t_in->length, L);
+          ESP_LOGD(TAG_L, "M-Bus: %u > %u", (L - 9 + (num_data_blocks * 2)), (t_in->length - BLOCK1A_SIZE));
+        }
+        return false;
+    }
+
+    memcpy(t_out->data, t_in->data, (BLOCK1A_SIZE - 2));
+    // Get all remaining data blocks and concatenate into data array (removing CRC bytes)
+    for (uint8_t n{0}; n < num_data_blocks; ++n) {
+        const uint8_t *in_ptr = (t_in->data + BLOCK1A_SIZE + (n * 18));       // Pointer to where data starts. Each block is 18 bytes
+        uint8_t *out_ptr      = (t_out->data + (n * 16) + BLOCK1A_SIZE - 2);  // Pointer into block where data starts.
+        uint8_t block_size    = (MIN((L - 9 - (n * 16)), 16) + 2);              // Maximum block size is 16 Data + 2 CRC
+
+        // Validate CRC
+        if (!crcValid(in_ptr, (block_size - 2))) {
+            return false;
+        }
+
+        // Get block data
+        memcpy(out_ptr, in_ptr, block_size);
+    }
+
+    return true;
+}
+
+static bool mBusDecodeFormatB(const m_bus_data_t *t_in, m_bus_data_t *t_out) {
+    uint8_t L = t_in->data[0];
+
+    // Store length of data
+    t_out->length = (L - (9 + 2) + BLOCK1B_SIZE - 2);
+
+    // Check length of package is sufficient
+    if ((L < 12) || ((L + 1) > t_in->length)) {  // L includes all bytes except itself
+        printf("M-Bus: Package too short for Length: %u\n", L);
+        return false;
+    }
+
+    // Validate CRC
+    crcValid(t_in->data, MIN((L - 1), (BLOCK1B_SIZE + BLOCK2B_SIZE - 2)));
+
+    // Get data from Block 2
+    memcpy(t_out->data, t_in->data, (MIN((L - 11), (BLOCK2B_SIZE - 2))) + BLOCK1B_SIZE);
+
+    // Extract extra block for long telegrams (not tested!)
+    uint8_t L_OFFSET = (BLOCK1B_SIZE + BLOCK2B_SIZE - 1);  // How much to subtract from L (127)
+    if (L > (L_OFFSET + 2)) {                              // Any more data? (besided 2 extra CRC)
+        // Validate CRC
+        if (!crcValid((t_in->data + BLOCK1B_SIZE + BLOCK2B_SIZE), (L - L_OFFSET - 2))) {
+            return false;
+        }
+
+        // Get Block 3
+        memcpy((t_out->data + (BLOCK2B_SIZE - 2)), (t_in->data + BLOCK2B_SIZE), (L - L_OFFSET - 2));
+
+        t_out->length -= 2;   // Subtract the two extra CRC bytes
+    }
+    return true;
+}
+
+
+static bool decode3OutOf6(uint8_t *t_encodedData, uint8_t *t_decodedData, bool t_lastByte = false) {
+  uint8_t data[4];
+
+  if (t_lastByte) {  // If last byte, ignore postamble sequence
+    data[0] = 0x00;
+    data[1] = 0x00;
+  }
+  else {  // Perform decoding on the encoded data
+    data[0] = decode3of6((*(t_encodedData + 2) & 0x3F)); 
+    data[1] = decode3of6(((*(t_encodedData + 2) & 0xC0) >> 6) | ((*(t_encodedData + 1) & 0x0F) << 2));
+  }
+
+  data[2] = decode3of6(((*(t_encodedData + 1) & 0xF0) >> 4) | ((*t_encodedData & 0x03) << 4));
+  data[3] = decode3of6(((*t_encodedData & 0xFC) >> 2));
+
+  // Check for possible errors
+  if ( (data[0] == 0xFF) | (data[1] == 0xFF) |
+       (data[2] == 0xFF) | (data[3] == 0xFF) ) {
+    return false;
+  }
+
+  // Prepare decoded output
+  *t_decodedData = (data[3] << 4) | (data[2]);
+  if (!t_lastByte) {
+    *(t_decodedData + 1) = (data[1] << 4) | (data[0]);
+  }
+
+  return true;
+} 
+
+static bool decode3OutOf6(m_bus_data_t *t_data,  uint16_t packetSize) {
+  // We can decode "in place"
+  uint8_t *encodedData = t_data->data;
+  uint8_t *decodedData = t_data->data; 
+
+  uint16_t bytesDecoded{0};
+  uint16_t bytesRemaining{packetSize};
+
+  // Decode packet      
+  while (bytesRemaining) {
+    // If last byte
+    if (bytesRemaining == 1) {
+      if(!decode3OutOf6(encodedData, decodedData, true)) {
+        printf("decodingStatus: error 01\n");
+        return false;
+      }
+      bytesRemaining -= 1;
+      bytesDecoded   += 1;
+    }
+    else {
+      if(!decode3OutOf6(encodedData, decodedData)) {
+        printf("decodingStatus: error 02\n");
+        return false;
+      }
+      bytesRemaining -= 2;
+      bytesDecoded   += 2;
+
+      encodedData += 3;
+      decodedData += 2;
+    }
+  }
+  t_data->length = bytesDecoded;
+  std::fill((std::begin(t_data->data) + t_data->length), std::end(t_data->data), 0);
+  return true;
+}
+
+uint16_t byteSize(uint16_t t_packetSize) {
+  // In T-mode data is 3 out of 6 coded.
+  uint16_t size = (( 3 * t_packetSize) / 2);
+
+  // If packetsize is a odd number 1 extra byte   
+  // that includes the 4-postamble sequence must be
+  // read.    
+  if (t_packetSize % 2) {
+    return (size + 1);
+  }
+  else {
+    return (size);
+  }
+}
+
+uint16_t packetSize(uint8_t t_L) {
+  uint16_t nrBytes;
+  uint8_t  nrBlocks;
+
+  // The 2 first blocks contains 25 bytes when excluding CRC and the L-field
+  // The other blocks contains 16 bytes when excluding the CRC-fields
+  // Less than 26 (15 + 10) 
+  if ( t_L < 26 ) {
+    nrBlocks = 2;
+  }
+  else { 
+    nrBlocks = (((t_L - 26) / 16) + 3);
+  }
+
+  // Add all extra fields, excluding the CRC fields
+  nrBytes = t_L + 1;
+
+  // Add the CRC fields, each block is contains 2 CRC bytes
+  nrBytes += (2 * nrBlocks);
+
+  return nrBytes;
+}
+
 
 //
 
@@ -385,15 +651,43 @@ std::string format_my_hex_pretty(const std::vector<uint16_t> &data) { return for
         using namespace esphome;
         ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame");
       }
-      rxStatus = decodeRXBytesTmode(this->MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
-      rxLength = packetSize(this->MBpacket[0]);
-      std::vector<unsigned char> RawFrame(this->MBbytes, this->MBbytes + RXinfo.length);
-      std::vector<unsigned char> T1Frame(this->MBpacket, this->MBpacket + rxLength);
+      // rxStatus = decodeRXBytesTmode(this->MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
+      // rxLength = packetSize(this->MBpacket[0]);
+      //
+      // przepisz dane z bufora
+      data_in.length = RXinfo.length;
+      for (int i = 0; i < RXinfo.length; i++) {
+        data_in.data[i] = MBbytes[i];
+      }
+
+      std::vector<unsigned char> RawFrame(data_in.data, data_in.data + data_in.length);
       std::string rawTelegram = format_my_hex_pretty(RawFrame);
-      std::string telegram = format_my_hex_pretty(T1Frame);
       {
         using namespace esphome;
         ESP_LOGD(TAG_L, "RAW Frame: %s", rawTelegram.c_str());
+      }
+
+      if (!decode3OutOf6(&data_in, packetSize(RXinfo.lengthField))) {
+        {
+          using namespace esphome;
+          ESP_LOGD(TAG_L, "wMBus-lib: blad dekodowania 3z6");
+        }
+        return RXinfo.complete;
+      }
+
+      // Decode
+      if (!mBusDecodeFormatA(&data_in, &data_out)) {
+        {
+          using namespace esphome;
+          ESP_LOGD(TAG_L, "wMBus-lib: blad dekodowania");
+        }
+        return RXinfo.complete;
+      }
+      //
+      std::vector<unsigned char> T1Frame(data_out.data, data_out.data + data_out.length);
+      std::string telegram = format_my_hex_pretty(T1Frame);
+      {
+        using namespace esphome;
         ESP_LOGD(TAG_L, "CRC Frame: %s", telegram.c_str());
       }
     } else if (RXinfo.framemode == WMBUS_C1_MODE) {
@@ -402,29 +696,11 @@ std::string format_my_hex_pretty(const std::vector<uint16_t> &data) { return for
           using namespace esphome;
           ESP_LOGD(TAG_L, "wMBus-lib: Processing C1 A frame");
         }
-        Serial.print(" FullFrame: ");
-        for (int ii=0; ii < RXinfo.length; ii++) {
-          Serial.printf("0x%02X, ", (int)(this->MBbytes[ii]));
-        }
-        Serial.println("");
-
-        // 2 + 1 + RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16);
-        rxLength = RXinfo.lengthField + 2 * (2 + (RXinfo.lengthField - 10)/16) + 1;
-
-        rxStatus = verifyCrcBytesCmodeA_local(this->MBbytes + 2, this->MBpacket, rxLength);
-        // small cheat
-        rxStatus = PACKET_OK;
       } else if (RXinfo.frametype == WMBUS_FRAMEB) {
         {
           using namespace esphome;
-          ESP_LOGD(TAG_L, "wMBus-lib: Processing C1 B frame -- NOT supported yet");
+          ESP_LOGD(TAG_L, "wMBus-lib: Processing C1 B frame");
         }
-        rxStatus = PACKET_UNKNOWN_ERROR;
-        Serial.print(" FullFrame: ");
-        for (int ii=0; ii < RXinfo.length; ii++) {
-          Serial.printf("0x%02X, ", (int)(this->MBbytes[ii]));
-        }
-        Serial.println("");
       }
     }
 
@@ -469,8 +745,8 @@ std::string format_my_hex_pretty(const std::vector<uint16_t> &data) { return for
 
 
     WMbusFrame get_frame() {
-  uint8_t len_without_crc = crcRemove(this->MBpacket, packetSize(this->MBpacket[0]));
-  std::vector<unsigned char> frame(this->MBpacket, this->MBpacket + len_without_crc);
+  // uint8_t len_without_crc = crcRemove(this->MBpacket, packetSize(this->MBpacket[0]));
+  std::vector<unsigned char> frame(data_out.data, data_out.data + data_out.length);
   std::string telegram = format_my_hex_pretty(frame);
   {
     using namespace esphome;
@@ -482,94 +758,6 @@ std::string format_my_hex_pretty(const std::vector<uint16_t> &data) { return for
 
 
   private:
-
-uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t packetSize)
-{
-  uint16_t crc = 0;
-  uint16_t i = 0;
-
-  bool crcNotOk = false;
-
-  Serial.print("   ");
-  while (i < 10) {
-    Serial.printf("%02X", pByte[i]);
-    crc = crcCalc(crc, pByte[i]);
-    pPacket[i] = pByte[i];
-    ++i;
-  }
-  Serial.printf(" %04X [%02X%02X] ", crc, pByte[i], pByte[i + 1]);
-
-  if ((~crc) != (pByte[i] << 8 | pByte[i + 1])) {
-    crcNotOk = true;
-  }
-
-  pPacket[i] = pByte[i];
-  ++i;
-  pPacket[i] = pByte[i];
-  ++i;
-  crc = 0;
-
-  int cycles = (packetSize - 12) / 18;
-  int myRun = 2;
-  Serial.print("   ");
-  while (cycles > 0) {
-    for (int j = 0; j < 16; ++j) {
-      Serial.printf("%02X", pByte[i]);
-      crc = crcCalc(crc, pByte[i]);
-      pPacket[i] = pByte[i];
-      ++i;
-    }
-    Serial.printf(" %04X [%02X%02X] ", crc, pByte[i], pByte[i + 1]);
-
-    myRun++;
-    if ((~crc) != (pByte[i] << 8 | pByte[i + 1])) {
-      crcNotOk = true;
-    }
-
-    pPacket[i] = pByte[i];
-    ++i;
-    pPacket[i] = pByte[i];
-    ++i;
-    crc = 0;
-
-    --cycles;
-  }
-
-  if (i == packetSize) {
-    return (PACKET_OK);
-  }
-
-  Serial.print("   ");
-  while (i < packetSize - 2) {
-    Serial.printf("%02X", pByte[i]);
-    crc = crcCalc(crc, pByte[i]);
-    pPacket[i] = pByte[i];
-    ++i;
-  }
-
-  Serial.printf(" %04X [%02X%02X] ", crc, pByte[i], pByte[i + 1]);
-
-  if ((~crc) != (pByte[i] << 8 | pByte[i + 1])) {
-    crcNotOk = true;
-  }
-
-  pPacket[i] = pByte[i];
-  ++i;
-  pPacket[i] = pByte[i];
-  ++i;
-
-  Serial.println("");
-  if (crcNotOk) {
-    return (PACKET_CRC_ERROR);
-  }
-  else {
-    return (PACKET_OK);
-  }
-}
-
-
-
-
 
     uint8_t start(bool force = true) {
 
@@ -638,6 +826,9 @@ uint16_t verifyCrcBytesCmodeA_local(uint8_t* pByte, uint8_t* pPacket, uint16_t p
     
     uint8_t MBbytes[584];
     uint8_t MBpacket[291];
+
+    m_bus_data_t data_in{0};  // Data from Physical layer decoded to bytes
+    m_bus_data_t data_out{0}; // Data for Data Link layer
 
     WMbusFrame returnFrame;
 
