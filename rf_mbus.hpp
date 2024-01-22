@@ -201,7 +201,7 @@ static uint8_t decode3of6(uint8_t t_byte) {
 }
 
 
-uint16_t crc16(uint8_t const t_message[], uint8_t t_nBytes, uint16_t t_polynomial, uint16_t t_init) {
+static uint16_t crc16(uint8_t const t_message[], uint8_t t_nBytes, uint16_t t_polynomial, uint16_t t_init) {
     uint16_t remainder{t_init};
 
     for (uint8_t byte{0}; byte < t_nBytes; ++byte) {
