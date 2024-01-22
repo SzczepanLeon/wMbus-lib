@@ -283,7 +283,7 @@ class rf_mbus {
     }
 
 
-    t_frame.frame.insert(t_frame.frame.begin(), t_in->data, (BLOCK1A_SIZE - 2));
+    // t_frame.frame.insert(t_frame.frame.begin(), t_in->data, (BLOCK1A_SIZE - 2));
     // memcpy(t_out->data, t_in->data, (BLOCK1A_SIZE - 2));
     // Get all remaining data blocks and concatenate into data array (removing CRC bytes)
     for (uint8_t n{0}; n < num_data_blocks; ++n) {
@@ -297,7 +297,7 @@ class rf_mbus {
       }
 
       // Get block data
-      t_frame.frame.insert((t_frame.frame.begin() + ((n * 16) + BLOCK1A_SIZE - 2)), in_ptr, block_size);
+      // t_frame.frame.insert((t_frame.frame.begin() + ((n * 16) + BLOCK1A_SIZE - 2)), in_ptr, block_size);
       // memcpy(out_ptr, in_ptr, block_size);
     }
 
@@ -403,7 +403,7 @@ class rf_mbus {
     return true;
   }
 
-  uint16_t byteSize(uint16_t t_packetSize) {
+  static uint16_t byteSize(uint16_t t_packetSize) {
     // In T-mode data is 3 out of 6 coded.
     uint16_t size = (( 3 * t_packetSize) / 2);
 
@@ -418,7 +418,7 @@ class rf_mbus {
     }
   }
 
-  uint16_t packetSize(uint8_t t_L) {
+  static uint16_t packetSize(uint8_t t_L) {
     uint16_t nrBytes;
     uint8_t  nrBlocks;
 
