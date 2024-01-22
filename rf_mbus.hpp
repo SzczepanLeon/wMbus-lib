@@ -4,9 +4,6 @@
 
 #pragma once
 
-#include <esphome/core/log.h>
-// #include "../../src/esphome/core/log.h"
-
 #include <stdint.h>
 #include <string>
 
@@ -21,9 +18,6 @@
 
 
 static const char *TAG_L = "wmbus-lib";
-
-// using namespace esphome;
-
 
 //////
 
@@ -79,8 +73,33 @@ static const char *TAG_L = "wmbus-lib";
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
-#define MY_LOG(...) \
-  esphome::ESP_LOGD(TAG_L, __VA_ARGS__)
+#if defined(ESPHOME_VERSION)
+  #include <esphome/core/log.h>
+  #define LOG_VV(...) \
+    esphome::ESP_LOGVV(TAG_L, __VA_ARGS__)
+  #define LOG_V(...) \
+    esphome::ESP_LOGV(TAG_L, __VA_ARGS__)
+  #define LOG_D(...) \
+    esphome::ESP_LOGD(TAG_L, __VA_ARGS__)
+  #define LOG_I(...) \
+    esphome::ESP_LOGI(TAG_L, __VA_ARGS__)
+  #define LOG_E(...) \
+    esphome::ESP_LOGE(TAG_L, __VA_ARGS__)
+#else
+  #define LOG_VV(...) \
+    Serial.printf(__VA_ARGS__);
+  #define LOG_V(...) \
+    Serial.printf(__VA_ARGS__);
+  #define LOG_D(...) \
+    Serial.printf(__VA_ARGS__);
+  #define LOG_I(...) \
+    esphome::ESP_LOGI("brak LOG", __VA_ARGS__)
+    // Serial.printf(__VA_ARGS__);
+  #define LOG_E(...) \
+    Serial.printf(__VA_ARGS__);
+#endif
+
+
 
 enum RxLoopState : uint8_t {
   INIT_RX       = 0,
@@ -243,16 +262,10 @@ static bool crcValid(const uint8_t *t_bytes, uint8_t t_crcOffset) {
     uint16_t crcCalc = ~crc16(t_bytes, t_crcOffset, CRC_POLY, 0);
     uint16_t crcRead = (((uint16_t)t_bytes[t_crcOffset] << 8) | t_bytes[t_crcOffset+1]);
     if (crcCalc != crcRead) {
-        {
-          using namespace esphome;
-          ESP_LOGD(TAG_L, "CRC error: Calculated: 0x%40X, Read: 0x%40X", crcCalc, crcRead);
-        }
+        LOG_D("CRC error: Calculated: 0x%40X, Read: 0x%40X", crcCalc, crcRead);
         return false;
     }
-    {
-      using namespace esphome;
-      ESP_LOGD(TAG_L, "CRC OK:    Calculated: 0x%04X, Read: 0x%04X", crcCalc, crcRead);
-    }
+    LOG_D("CRC OK:    Calculated: 0x%04X, Read: 0x%04X", crcCalc, crcRead);
     return true;
 }
 
@@ -271,11 +284,8 @@ static bool mBusDecodeFormatA(const m_bus_data_t *t_in, m_bus_data_t *t_out) {
     // Check length of package is sufficient
     uint8_t num_data_blocks = (L - 9 + 15) / 16;                                         // Data blocks are 16 bytes long + 2 CRC bytes (not counted in L)
     if ((L < 9) || (((L - 9 + (num_data_blocks * 2))) > (t_in->length - BLOCK1A_SIZE))) {  // add CRC bytes for each data block
-        {
-          using namespace esphome;
-          ESP_LOGD(TAG_L, "M-Bus: Package (%u) too short for packet Length: %u", t_in->length, L);
-          ESP_LOGD(TAG_L, "M-Bus: %u > %u", (L - 9 + (num_data_blocks * 2)), (t_in->length - BLOCK1A_SIZE));
-        }
+        LOG_D("M-Bus: Package (%u) too short for packet Length: %u", t_in->length, L);
+        LOG_I("M-Bus: %u > %u", (L - 9 + (num_data_blocks * 2)), (t_in->length - BLOCK1A_SIZE));
         return false;
     }
 
@@ -479,10 +489,7 @@ uint16_t packetSize(uint8_t t_L) {
     Serial.print(cc1101Version);
     Serial.println("'");
     ELECHOUSE_cc1101.SetRx();
-    {
-      using namespace esphome;
-      ESP_LOGD(TAG_L, "wMBus-lib: CC1101 initialized");
-    }
+    LOG_D("wMBus-lib: CC1101 initialized");
     // esphome::ESP_LOGD(TAG_L, "wMBus-lib: CC1101 initialized");
     // Serial.println("wMBus-lib: CC1101 initialized");
     memset(&RXinfo, 0, sizeof(RXinfo));
@@ -536,10 +543,7 @@ bool task(){
             }
             RXinfo.length = packetSize(L);
           } else if (*currentByte == 0x3D) {
-            {
-              using namespace esphome;
-              ESP_LOGD(TAG_L, "Mode C1 frame type B");
-            }
+            LOG_D("Mode C1 frame type B");
             currentByte++;
             uint8_t L = *currentByte;
             RXinfo.frametype = WMBUS_FRAMEB;
@@ -549,10 +553,7 @@ bool task(){
               return false;
             }
             RXinfo.length = 2 + 1 + L;
-            {
-              using namespace esphome;
-              ESP_LOGD(TAG_L, "Will have %d total bytes", RXinfo.length);
-            }
+            LOG_D("Will have %d total bytes", RXinfo.length);
           } else {
             // Unknown type, reset.
             RXinfo.state = INIT_RX;
@@ -566,25 +567,11 @@ bool task(){
           RXinfo.state = INIT_RX;
           return false;
         } else {
-          // {
-          //   using namespace esphome;
-          //   ESP_LOGD(TAG_L, "Mode T1 frame type A");
-          // }
           uint8_t L = bytesDecoded[0];
           RXinfo.framemode = WMBUS_T1_MODE;
           RXinfo.frametype = WMBUS_FRAMEA;
           RXinfo.lengthField = L;
           RXinfo.length = byteSize(packetSize(L));
-          // {
-          //   using namespace esphome;
-          //   ESP_LOGD(TAG_L, "Will have %d total bytes L  %", RXinfo.length, L);
-          // }
-          // RXinfo.lengthField = bytesDecoded[0];
-          // RXinfo.length = byteSize(packetSize(RXinfo.lengthField));
-          // {
-          //   using namespace esphome;
-          //   ESP_LOGD(TAG_L, "Will have %d total bytes L' %d", RXinfo.length, );
-          // }
         }
 
         // check if incoming data will fit into buffer
@@ -610,15 +597,7 @@ bool task(){
 
     // awaiting more data to be read
     case READ_DATA:
-      // {
-      //   using namespace esphome;
-      //   ESP_LOGD(TAG_L, "Waiting for more data from CC1101 FIFO");
-      // }
       if (digitalRead(this->gdo0)) {
-        // {
-        //   using namespace esphome;
-        //   ESP_LOGD(TAG_L, "Reading more data from CC1101 FIFO");
-        // }
         // Read out the RX FIFO
         // Do not empty the FIFO (See the CC110x or 2500 Errata Note)
         uint8_t bytesInFIFO = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x7F;        
@@ -635,29 +614,15 @@ bool task(){
   uint8_t overfl = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x80;
   // END OF PAKET
   if ((!overfl) && (!digitalRead(gdo2)) && (RXinfo.state > WAIT_FOR_SYNC)) {
-    // {
-    //   using namespace esphome;
-    //   ESP_LOGD(TAG_L, "Reading last data from CC1101 FIFO");
-    // }
     ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, (uint8_t)RXinfo.bytesLeft);
 
     // decode
     uint16_t rxStatus = 1;
     uint16_t rxLength = 0;
-    {
-      using namespace esphome;
-      ESP_LOGD(TAG_L, "\n\nRX bytes %d, L %d (%02X), total frame length %d", RXinfo.length, RXinfo.lengthField, RXinfo.lengthField, packetSize(RXinfo.lengthField));
-    }
-    esphome::ESP_LOGD(TAG_L, "\n\nRX bytes %d, L %d (%02X), total frame length %d '", RXinfo.length, RXinfo.lengthField, RXinfo.lengthField, packetSize(RXinfo.lengthField));
-    MY_LOG("\n\nRX bytes %d, L %d (%02X), total frame length %d ''", RXinfo.length, RXinfo.lengthField, RXinfo.lengthField, packetSize(RXinfo.lengthField));
+    LOG_D("\n\nRX bytes %d, L %d (%02X), total frame length %d", RXinfo.length, RXinfo.lengthField, RXinfo.lengthField, packetSize(RXinfo.lengthField));
 
     if (RXinfo.framemode == WMBUS_T1_MODE) {
-      {
-        using namespace esphome;
-        ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame");
-      }
-      // MY_LOG(ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame '"));
-      // esphome::ESP_LOGD(TAG_L, "wMBus-lib: Processing T1 A frame ''");
+      LOG_D("wMBus-lib: Processing T1 A frame");
       // rxStatus = decodeRXBytesTmode(this->MBbytes, this->MBpacket, packetSize(RXinfo.lengthField));
       // rxLength = packetSize(this->MBpacket[0]);
       //
@@ -669,31 +634,19 @@ bool task(){
 
       std::vector<unsigned char> RawFrame(data_in.data, data_in.data + data_in.length);
       std::string rawTelegram = format_my_hex_pretty(RawFrame);
-      {
-        using namespace esphome;
-        ESP_LOGD(TAG_L, "RAW Frame: %s", rawTelegram.c_str());
-      }
+      LOG_D("RAW Frame: %s", rawTelegram.c_str());
 
       if (!decode3OutOf6(&data_in, packetSize(RXinfo.lengthField))) {
-        {
-          using namespace esphome;
-          ESP_LOGD(TAG_L, "wMBus-lib: blad dekodowania 3z6");
-        }
+        LOG_D("wMBus-lib: blad dekodowania 3z6");
         rxStatus = 11;
         // return RXinfo.complete;
       }
       std::vector<unsigned char> T1Frame(data_in.data, data_in.data + data_in.length);
       std::string telegram = format_my_hex_pretty(T1Frame);
-      {
-        using namespace esphome;
-        ESP_LOGD(TAG_L, "CRC Frame: %s", telegram.c_str());
-      }
+      LOG_D("CRC Frame: %s", telegram.c_str());
       // Decode
       if (!mBusDecodeFormatA(&data_in, &data_out)) {
-        {
-          using namespace esphome;
-          ESP_LOGD(TAG_L, "wMBus-lib: blad dekodowania");
-        }
+        LOG_D("wMBus-lib: blad dekodowania");
         rxStatus = 22;
         // return RXinfo.complete;
       }
@@ -702,48 +655,27 @@ bool task(){
       // rxStatus = 1;
     } else if (RXinfo.framemode == WMBUS_C1_MODE) {
       if (RXinfo.frametype == WMBUS_FRAMEA) {
-        {
-          using namespace esphome;
-          ESP_LOGD(TAG_L, "wMBus-lib: Processing C1 A frame");
-        }
+        LOG_D("wMBus-lib: Processing C1 A frame");
       } else if (RXinfo.frametype == WMBUS_FRAMEB) {
-        {
-          using namespace esphome;
-          ESP_LOGD(TAG_L, "wMBus-lib: Processing C1 B frame");
-        }
+        LOG_D("wMBus-lib: Processing C1 B frame");
       }
     }
 
     if (rxStatus == 1) {
-      {
-        using namespace esphome;
-        ESP_LOGD(TAG_L, "Packet OK.");
-      }
+      LOG_D("Packet OK.");
       this->returnFrame.framemode = RXinfo.framemode;
       RXinfo.complete = true;
       this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
       this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
     }
     else if (rxStatus == 11) {
-      {
-        using namespace esphome;
-        ESP_LOGD(TAG_L, "wMBus-lib:  Error during decoding '3 out of 6'");
-      }
-      // Serial.println("wMBus-lib:  Error during decoding '3 out of 6'");
+      LOG_E("wMBus-lib:  Error during decoding '3 out of 6'");
     }
     else if (rxStatus == 22) {
-      {
-        using namespace esphome;
-        ESP_LOGD(TAG_L, "wMBus-lib:  Error during decoding 'CRC'");
-      }
-      // Serial.println("wMBus-lib:  Error during decoding 'CRC'");
+      LOG_E("wMBus-lib:  Error during decoding 'CRC'");
     }
     else {
-      {
-        using namespace esphome;
-        ESP_LOGD(TAG_L, "wMBus-lib:  Error during decoding 'unknown'");
-      }
-      // Serial.println("wMBus-lib:  Error during decoding 'unknown'");
+      LOG_E("wMBus-lib:  Error during decoding 'unknown'");
     }
     RXinfo.state = INIT_RX;
     return RXinfo.complete;
@@ -758,10 +690,7 @@ bool task(){
   // uint8_t len_without_crc = crcRemove(this->MBpacket, packetSize(this->MBpacket[0]));
   std::vector<unsigned char> frame(data_out.data, data_out.data + data_out.length);
   std::string telegram = format_my_hex_pretty(frame);
-  {
-    using namespace esphome;
-    ESP_LOGD(TAG_L, "    Frame: %s", telegram.c_str());
-  }
+  LOG_I("    Frame: %s", telegram.c_str());
   this->returnFrame.frame = frame;
   return this->returnFrame;
 }
@@ -774,10 +703,6 @@ bool task(){
   // waiting to long for next part of data?
   // czy nie wydluzyc czasu w przypadku oczekiwania na SYNC? Tzn czy dac reinit_tylko jak juz jestesmy w petli odbierania danych?
   bool reinit_needed = ((millis() - sync_time_) > max_wait_time_) ? true: false;
-  // {
-  //   using namespace esphome;
-  //   ESP_LOGD(TAG_L, "start: %d|%d", force, reinit_needed);
-  // }
   if (!force) {
     if (!reinit_needed) {
       // already in RX?
@@ -786,12 +711,6 @@ bool task(){
       }
     }
   }
-
-  // {
-  //   using namespace esphome;
-  //   ESP_LOGD(TAG_L, "start: init RX");
-  // }
-
   // init RX here, each time we're idle
   RXinfo.state = INIT_RX;
   sync_time_ = millis();
