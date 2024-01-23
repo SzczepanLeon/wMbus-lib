@@ -288,7 +288,7 @@ class rf_mbus {
     // Get all remaining data blocks and concatenate into data array (removing CRC bytes)
     for (uint8_t n{0}; n < num_data_blocks; ++n) {
       const uint8_t *in_ptr = (t_in->data + BLOCK1A_SIZE + (n * 18));       // Pointer to where data starts. Each block is 18 bytes
-      uint8_t *out_ptr      = (t_frame.frame.begin() + (n * 16) + BLOCK1A_SIZE - 2);  // Pointer into block where data starts.
+      // uint8_t *out_ptr      = (t_frame.frame.begin() + (n * 16) + BLOCK1A_SIZE - 2);  // Pointer into block where data starts.
       uint8_t block_size    = (MIN((L - 9 - (n * 16)), 16) + 2);            // Maximum block size is 16 Data + 2 CRC
 
       // Validate CRC
@@ -297,7 +297,10 @@ class rf_mbus {
       }
 
       // Get block data
-      t_frame.frame.insert((t_frame.frame.begin() + ((n * 16) + BLOCK1A_SIZE - 2)), in_ptr, out_ptr);
+      // memcpy(out_ptr, in_ptr, block_size);
+      // t_frame.frame.insert((t_frame.frame.begin() + ((n * 16) + BLOCK1A_SIZE - 2)), in_ptr, block_size);
+      // t_frame.frame.insert((t_frame.frame.begin() + ((n * 16) + BLOCK1A_SIZE - 2)), in_ptr, out_ptr);
+      t_frame.frame.insert((t_frame.frame.begin() + ((n * 16) + BLOCK1A_SIZE - 2)), in_ptr, (in_ptr + block_size));
       // memcpy(out_ptr, in_ptr, block_size);
     }
 
