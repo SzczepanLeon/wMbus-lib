@@ -247,7 +247,7 @@ class rf_mbus {
       LOGD("wMBus-lib: Processing T1 A frame");
       std::vector<unsigned char> RawFrame(t_in.data, t_in.data + t_in.lengthField);
       std::string rawTelegram = esphome::format_hex_pretty(RawFrame);
-      LOGVV("RAW Frame: %s", rawTelegram.c_str());
+      LOGV("RAW Frame: %s", rawTelegram.c_str());
 
       if (decode3OutOf6(&t_in, packetSize(t_in.lengthField))) {
         std::vector<unsigned char> frame(t_in.data, t_in.data + t_in.length);
