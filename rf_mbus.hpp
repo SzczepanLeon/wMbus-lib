@@ -242,7 +242,7 @@ class rf_mbus {
     }
     else if (t_in.mode == 'T') {
       LOGD("Processing T1 A frame");
-      std::vector<unsigned char> rawFrame(t_in.data, t_in.data + t_in.lengthField);
+      std::vector<unsigned char> rawFrame(t_in.data, t_in.data + t_in.length);
         std::string telegram = esphome::format_hex_pretty(rawFrame);
         telegram.erase(std::remove(telegram.begin(), telegram.end(), '.'), telegram.end());
         LOGV("Frame: %s [RAW]", telegram.c_str());
@@ -637,24 +637,43 @@ class rf_mbus {
     if ((!overfl) && (!digitalRead(gdo2)) && (rxLoop.state > WAIT_FOR_SYNC)) {
       ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, (uint8_t)rxLoop.bytesLeft);
 
-      LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d", rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField));
+//       LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d",
+//             rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField));
 
-      LOGD("Have %d bytes from CC1101 Rx", (data_in.data - rxLoop.pByteIndex));
+//       LOGD("Have %d bytes from CC1101 Rx", (rxLoop.pByteIndex - data_in.data));
 
-//
-      if (mBusDecode(data_in, this->returnFrame)) {
-        LOGD("Packet OK.");
-        this->returnFrame.framemode = rxLoop.framemode;
-        rxLoop.complete = true;
-        this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
-        this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
-      }
-      else {
-        LOGE("Error .........");
-      }
-      rxLoop.state = INIT_RX;
-      return rxLoop.complete;
+// //
+//       if ((rxLoop.length) && mBusDecode(data_in, this->returnFrame)) {
+//         LOGD("Packet OK.");
+//         this->returnFrame.framemode = rxLoop.framemode;
+//         rxLoop.complete = true;
+//         this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
+//         this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
+//       }
+//       else {
+//         LOGE("Error .........");
+//       }
+//       rxLoop.state = INIT_RX;
+//       return rxLoop.complete;
     }
+//
+    LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d",
+          rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField));
+
+    LOGD("Have %d bytes from CC1101 Rx", (rxLoop.pByteIndex - data_in.data));
+
+    if ((rxLoop.length) && mBusDecode(data_in, this->returnFrame)) {
+      LOGD("Packet OK.");
+      this->returnFrame.framemode = rxLoop.framemode;
+      rxLoop.complete = true;
+      this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
+      this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
+    }
+    else {
+      LOGE("Error .........");
+    }
+    rxLoop.state = INIT_RX;
+//
     start(false);
 
     return rxLoop.complete;
