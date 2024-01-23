@@ -53,8 +53,7 @@ static const char *TAG_L = "wmbus-lib";
 #define MARCSTATE_TXFIFO_UNDERFLOW 0x16
 
 #define RX_FIFO_START_THRESHOLD    0
-#define RX_FIFO_THRESHOLD          10
-#define RX_AVAILABLE_FIFO          44 
+#define RX_FIFO_THRESHOLD          11  // 48 bytes in Rx FIFO
 
 #define FIXED_PACKET_LENGTH        0x00
 #define INFINITE_PACKET_LENGTH     0x02
@@ -246,7 +245,7 @@ class rf_mbus {
       std::vector<unsigned char> rawFrame(t_in.data, t_in.data + t_in.length);
       std::string telegram = esphome::format_hex_pretty(rawFrame);
       // telegram.erase(std::remove(telegram.begin(), telegram.end(), '.'), telegram.end());
-      LOGV("Frame: %s [RAW] (%d)", telegram.c_str(), t_in.length);
+      LOGV("Frame: %s [RAW]", telegram.c_str());
 
       if (decode3OutOf6(&t_in, packetSize(t_in.lengthField))) {
         std::vector<unsigned char> frame(t_in.data, t_in.data + t_in.length);
@@ -265,7 +264,7 @@ class rf_mbus {
     if (retVal) {
       std::string telegram = esphome::format_hex_pretty(t_frame.frame);
       telegram.erase(std::remove(telegram.begin(), telegram.end(), '.'), telegram.end());
-      LOGV("Frame: %s [without CRC]", telegram.c_str());
+      LOGD("Frame: %s [without CRC]", telegram.c_str());
     }
     return retVal;
   }
@@ -593,6 +592,7 @@ class rf_mbus {
               return false;
               // czy tu dac return czy tez inaczej rozwiazac powrot do poczatku?
             }
+            // czy mam cofnac o 2 indeks rxLoop.pByteIndex?? pewnie tak
           }
           // Mode T Block A
           else if (decode3OutOf6(rxLoop.pByteIndex, bytesDecoded)) {
@@ -670,7 +670,7 @@ class rf_mbus {
 
 
   WMbusFrame get_frame() {
-    LOGI("Packet pobrany");
+    LOGI("Packet pobrany\n");
     return this->returnFrame;
   }
 
