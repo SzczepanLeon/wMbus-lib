@@ -77,26 +77,26 @@ static const char *TAG_L = "wmbus-lib";
 #if defined(ESPHOME)
   #include "esphome/core/helpers.h"
   #include <esphome/core/log.h>
-  #define LOG_VV(...) \
+  #define LOGVV(...) \
     esphome::ESP_LOGVV(TAG_L, __VA_ARGS__)
-  #define LOG_V(...) \
+  #define LOGV(...) \
     esphome::ESP_LOGV(TAG_L, __VA_ARGS__)
-  #define LOG_D(...) \
+  #define LOGD(...) \
     esphome::ESP_LOGD(TAG_L, __VA_ARGS__)
-  #define LOG_I(...) \
+  #define LOGI(...) \
     esphome::ESP_LOGI(TAG_L, __VA_ARGS__)
-  #define LOG_E(...) \
+  #define LOGE(...) \
     esphome::ESP_LOGE(TAG_L, __VA_ARGS__)
 #else
-  #define LOG_VV(...) \
+  #define LOGVV(...) \
     Serial.printf(__VA_ARGS__);
-  #define LOG_V(...) \
+  #define LOGV(...) \
     Serial.printf(__VA_ARGS__);
-  #define LOG_D(...) \
+  #define LOGD(...) \
     Serial.printf(__VA_ARGS__);
-  #define LOG_I(...) \
+  #define LOGI(...) \
     Serial.printf(__VA_ARGS__);
-  #define LOG_E(...) \
+  #define LOGE(...) \
     Serial.printf(__VA_ARGS__);
 #endif
 
@@ -185,11 +185,11 @@ class rf_mbus {
       uint16_t crcCalc = ~crc16(t_bytes, t_crcOffset, CRC_POLY, 0);
       uint16_t crcRead = (((uint16_t)t_bytes[t_crcOffset] << 8) | t_bytes[t_crcOffset+1]);
       if (crcCalc != crcRead) {
-        LOG_V("  calculated: 0x%04X, read: 0x%04X  !!!", crcCalc, crcRead);
+        LOGV("  calculated: 0x%04X, read: 0x%04X  !!!", crcCalc, crcRead);
         retVal = false;
       }
       else {
-        LOG_V("  calculated: 0x%04X, read: 0x%04X", crcCalc, crcRead);
+        LOGV("  calculated: 0x%04X, read: 0x%04X", crcCalc, crcRead);
         retVal = true;
       }
       return retVal;
@@ -224,45 +224,45 @@ class rf_mbus {
     bool retVal{false};
     if (t_in.mode == 'C') {
       if (t_in.block == 'A') {
-        LOG_D("wMBus-lib: Processing C1 A frame");
+        LOGD("wMBus-lib: Processing C1 A frame");
         std::vector<unsigned char> T1Frame(t_in.data, t_in.data + t_in.length);
         std::string telegram = esphome::format_hex_pretty(T1Frame);
-        LOG_V("CRC Frame: %s", telegram.c_str());
+        LOGV("CRC Frame: %s", telegram.c_str());
         if (mBusDecodeFormatA(t_in, t_frame)) {
           retVal = true;
         }
       }
       else if (t_in.block == 'B') {
-        LOG_D("wMBus-lib: Processing C1 B frame");
+        LOGD("wMBus-lib: Processing C1 B frame");
         std::vector<unsigned char> frame(t_in.data, t_in.data + t_in.length);
         std::string telegram = esphome::format_hex_pretty(frame);
-        LOG_V("CRC Frame: %s", telegram.c_str());
+        LOGV("CRC Frame: %s", telegram.c_str());
         if (mBusDecodeFormatB(t_in, t_frame)) {
           retVal = true;
         }
       }
     }
     else if (t_in.mode == 'T') {
-      LOG_D("wMBus-lib: Processing T1 A frame");
+      LOGD("wMBus-lib: Processing T1 A frame");
       std::vector<unsigned char> RawFrame(t_in.data, t_in.data + t_in.lengthField);
       std::string rawTelegram = esphome::format_hex_pretty(RawFrame);
-      LOG_VV("RAW Frame: %s", rawTelegram.c_str());
+      LOGVV("RAW Frame: %s", rawTelegram.c_str());
 
       if (decode3OutOf6(&t_in, packetSize(t_in.lengthField))) {
         std::vector<unsigned char> frame(t_in.data, t_in.data + t_in.length);
         std::string telegram = esphome::format_hex_pretty(frame);
-        LOG_V("CRC Frame: %s", telegram.c_str());
+        LOGV("CRC Frame: %s", telegram.c_str());
         if (mBusDecodeFormatA(t_in, t_frame)) {
           retVal = true;
         }
       }
       else {
-        // LOG_VV("wMBus-lib: Failed to decode 3 out of 6");
+        // LOGVV("wMBus-lib: Failed to decode 3 out of 6");
       }
 
     }
     std::string telegram = esphome::format_hex_pretty(t_frame.frame);
-    // LOG_VV("    Frame: %s", telegram.c_str());
+    // LOGVV("    Frame: %s", telegram.c_str());
     return retVal;
   }
 
@@ -294,7 +294,7 @@ class rf_mbus {
     uint8_t L = t_in.data[0];
 
     // Validate CRC
-    LOG_V("Validating CRC for Block1");
+    LOGV("Validating CRC for Block1");
     if (!crcValid(t_in.data, (BLOCK1A_SIZE - 2))) {
       return false;
     }
@@ -302,8 +302,8 @@ class rf_mbus {
     // Check length of package is sufficient
     uint8_t num_data_blocks = (L - 9 + 15) / 16;                                           // Data blocks are 16 bytes long + 2 CRC bytes (not counted in L)
     if ((L < 9) || (((L - 9 + (num_data_blocks * 2))) > (t_in.length - BLOCK1A_SIZE))) {   // add CRC bytes for each data block
-      LOG_V("M-Bus: Package (%u) too short for packet Length: %u", t_in.length, L);
-      // LOG_VV("M-Bus: %u > %u", (L - 9 + (num_data_blocks * 2)), (t_in.length - BLOCK1A_SIZE));
+      LOGV("M-Bus: Package (%u) too short for packet Length: %u", t_in.length, L);
+      // LOGVV("M-Bus: %u > %u", (L - 9 + (num_data_blocks * 2)), (t_in.length - BLOCK1A_SIZE));
       return false;
     }
 
@@ -314,7 +314,7 @@ class rf_mbus {
       uint8_t block_size    = (MIN((L - 9 - (n * 16)), 16));          // Maximum block size is 16 Data (without 2 CRC)
 
       // Validate CRC
-      LOG_V("Validating CRC for Block%u", (n + 2));
+      LOGV("Validating CRC for Block%u", (n + 2));
       if (!crcValid(in_ptr, (block_size))) {
         return false;
       }
@@ -356,15 +356,15 @@ class rf_mbus {
 
     // Check length of package is sufficient
     if ((L < 12) || ((L + 1) > t_in.length)) {  // pod len mam miec zapisane ile bajtow odebralem
-      LOG_V("M-Bus: Package (%u) too short for packet Length: %u", t_in.length, L);
-      // LOG_VV("M-Bus: %u > %u", (L + 1), t_in.length);
+      LOGV("M-Bus: Package (%u) too short for packet Length: %u", t_in.length, L);
+      // LOGVV("M-Bus: %u > %u", (L + 1), t_in.length);
       return false;
     }
 
     blockSize = MIN((L - 1), (BLOCK1B_SIZE + BLOCK2B_SIZE - 2));
     blockStartPtr = t_in.data;
     // Validate CRC for Block1 + Block2
-    LOG_V("Validating CRC for Block1 + Block2");
+    LOGV("Validating CRC for Block1 + Block2");
     if (!crcValid(t_in.data, blockSize)) {
       return false;
     }
@@ -378,7 +378,7 @@ class rf_mbus {
       blockSize = (L - L_OFFSET - 1);
       blockStartPtr = (t_in.data + L_OFFSET);
       // Validate CRC for Block3
-      LOG_V("Validating CRC for Block3");
+      LOGV("Validating CRC for Block3");
       if (!crcValid(blockStartPtr, blockSize)) {
         return false;
       }
@@ -514,7 +514,7 @@ class rf_mbus {
     uint8_t freq1 = (freq_reg >> 8) & 0xFF;
     uint8_t freq0 = freq_reg & 0xFF;
 
-    LOG_D("Set CC1101 frequency to %3.3fMHz [%02X %02X %02X]",
+    LOGD("Set CC1101 frequency to %3.3fMHz [%02X %02X %02X]",
           freq/1000000, freq2, freq1, freq0);
           // don't use setMHZ() -- seems to be broken
     ELECHOUSE_cc1101.SpiWriteReg(CC1101_FREQ2, freq2);
@@ -527,14 +527,14 @@ class rf_mbus {
 
     if ((cc1101Version != 0) && (cc1101Version != 255)) {
       retVal = true;
-      LOG_D("wMBus-lib: CC1101 version '%d'", cc1101Version);
+      LOGD("wMBus-lib: CC1101 version '%d'", cc1101Version);
       ELECHOUSE_cc1101.SetRx();
-      LOG_D("wMBus-lib: CC1101 initialized");
+      LOGD("wMBus-lib: CC1101 initialized");
       // memset(&RXinfo, 0, sizeof(RXinfo)); // ??? dlaczego cala struktore zerowalem?
       delay(4);
     }
     else {
-      LOG_E("wMBus-lib: CC1101 initialization FAILED!");
+      LOGE("wMBus-lib: CC1101 initialization FAILED!");
     }
 
     return retVal;
@@ -647,30 +647,30 @@ class rf_mbus {
 
       // decode
       uint16_t rxStatus = 1;
-      LOG_D("\n\nRX bytes %d, L %d (%02X), total frame length %d", rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField));
+      LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d", rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField));
 
 //
       if (mBusDecode(data_in, this->returnFrame)) {
-        LOG_D("Decode OK.");
+        LOGD("Decode OK.");
         rxStatus = 1;
       }
 //
 
       if (rxStatus == 1) {
-        LOG_D("Packet OK.");
+        LOGD("Packet OK.");
         this->returnFrame.framemode = rxLoop.framemode;
         rxLoop.complete = true;
         this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
         this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
       }
       else if (rxStatus == 11) {
-        LOG_E("wMBus-lib:  Error during decoding '3 out of 6'");
+        LOGE("wMBus-lib:  Error during decoding '3 out of 6'");
       }
       else if (rxStatus == 22) {
-        LOG_E("wMBus-lib:  Error during decoding 'CRC'");
+        LOGE("wMBus-lib:  Error during decoding 'CRC'");
       }
       else {
-        LOG_E("wMBus-lib:  Error during decoding 'unknown'");
+        LOGE("wMBus-lib:  Error during decoding 'unknown'");
       }
       rxLoop.state = INIT_RX;
       return rxLoop.complete;
