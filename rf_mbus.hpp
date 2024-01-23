@@ -244,9 +244,9 @@ class rf_mbus {
     else if (t_in.mode == 'T') {
       LOGD("Processing T1 A frame");
       std::vector<unsigned char> rawFrame(t_in.data, t_in.data + t_in.length);
-        std::string telegram = esphome::format_hex_pretty(rawFrame);
-        telegram.erase(std::remove(telegram.begin(), telegram.end(), '.'), telegram.end());
-        LOGV("Frame: %s [RAW]", telegram.c_str());
+      std::string telegram = esphome::format_hex_pretty(rawFrame);
+      // telegram.erase(std::remove(telegram.begin(), telegram.end(), '.'), telegram.end());
+      LOGV("Frame: %s [RAW] (%d)", telegram.c_str(), t_in.length);
 
       if (decode3OutOf6(&t_in, packetSize(t_in.lengthField))) {
         std::vector<unsigned char> frame(t_in.data, t_in.data + t_in.length);
