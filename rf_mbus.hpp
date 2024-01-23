@@ -638,42 +638,34 @@ class rf_mbus {
 
           max_wait_time_ += extra_time_;
         }
-        if (!digitalRead(this->gdo2)) { // de-assert at the end of packet or on RxFIFO overflow
-          uint8_t overfl = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x80;
-          // Read last part of data
-          if (!overfl) {
-            ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, (uint8_t)rxLoop.bytesLeft);
-            rxLoop.state = DATA_END;
-          }
-          // overflow, reinit loop
-          else {
-            LOGE("Rx FIFO overflow");
-            rxLoop.state = INIT_RX;
-            return false;
-          }
-        }
-        break;
-
-      // Process telegram
-      case DATA_END:
-        LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d data_in.L %d",
-            rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField), data_in.length);
-        LOGD("Have %d bytes from CC1101 Rx (%d)", (rxLoop.pByteIndex - data_in.data), rxLoop.state);
-        if (mBusDecode(data_in, this->returnFrame)) {
-          LOGD("Packet OK.");
-          this->returnFrame.framemode = rxLoop.framemode;
-          rxLoop.complete = true;
-          this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
-          this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
-          // jak to wywalic ? (ponizej) - cos z linia start(false trzeba zrobic, pewnie aby nie zerowala)
-          return true;
-        }
         break;
     }
 
-    start(false);
+  uint8_t overfl = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x80;
+  // END OF PAKET
+  if ((!overfl) && (!digitalRead(gdo2)) && (RXinfo.state > WAIT_FOR_DATA)) {
+    ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, (uint8_t)RXinfo.bytesLeft);
+    rxLoop.state = DATA_END;
 
-    return rxLoop.complete;
+    LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d data_in.L %d",
+        rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField), data_in.length);
+    LOGD("Have %d bytes from CC1101 Rx (%d)", (rxLoop.pByteIndex - data_in.data), rxLoop.state);
+    if (mBusDecode(data_in, this->returnFrame)) {
+      LOGD("Packet OK.");
+      this->returnFrame.framemode = rxLoop.framemode;
+      rxLoop.complete = true;
+      this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
+      this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
+    }
+    else {
+      Serial.println("wMBus-lib:  Error during decoding 'unknown'");
+    }
+    RXinfo.state = INIT_RX;
+    return RXinfo.complete;
+  }
+  start(false);
+
+  return RXinfo.complete;
   }
 
 
