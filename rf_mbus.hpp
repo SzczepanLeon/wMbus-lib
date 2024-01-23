@@ -586,8 +586,9 @@ class rf_mbus {
             }
             // Unknown type, reinit loop
             else {
-              LOGE("Unknown type.");
+              LOGE("Unknown type 0x%02X", *currentByte);
               rxLoop.state = INIT_RX;
+              // czy tu dac return czy tez inaczej rozwiazac powrot do poczatku?
             }
           }
           // Mode T Block A
@@ -601,7 +602,7 @@ class rf_mbus {
           }
           // Unknown mode, reinit loop
           else {
-            LOGE("Unknown mode.");
+            LOGE("Unknown mode 0x%02X", *currentByte);
             rxLoop.state = INIT_RX;
           }
 
@@ -639,7 +640,7 @@ class rf_mbus {
 
     uint8_t overfl = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x80;
     // Last part of data from FIFO
-    if ((!overfl) && (!digitalRead(gdo2)) && (rxLoop.state > WAIT_FOR_DATA)) {
+    if ((!overfl) && (!digitalRead(gdo2)) && (rxLoop.state == READ_DATA)) {
       ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, (uint8_t)rxLoop.bytesLeft);
       rxLoop.state = DATA_END;
     }
