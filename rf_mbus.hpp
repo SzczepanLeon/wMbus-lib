@@ -262,9 +262,11 @@ class rf_mbus {
       }
 
     }
-    std::string telegram = esphome::format_hex_pretty(t_frame.frame);
-    telegram.erase(std::remove(telegram.begin(), telegram.end(), '.'), telegram.end());
-    LOGV("Frame: %s [without CRC]", telegram.c_str());
+    if (retVal) {
+      std::string telegram = esphome::format_hex_pretty(t_frame.frame);
+      telegram.erase(std::remove(telegram.begin(), telegram.end(), '.'), telegram.end());
+      LOGV("Frame: %s [without CRC]", telegram.c_str());
+    }
     return retVal;
   }
 
@@ -638,32 +640,32 @@ class rf_mbus {
         }
         break;
 
-        // Czy nie dodac tutaj jeszcze jednego case na koncowke danych?
-    }
+      // Read last part of data
+      case READ_DATA:
+        if (!digitalRead(this->gdo2)) {
+          uint8_t overfl = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x80;
+          if (!overfl) {
+            ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, (uint8_t)rxLoop.bytesLeft);
+            rxLoop.state = DATA_END;
+          }
+        }
+        break;
 
-    uint8_t overfl = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x80;
-    // Last part of data from FIFO
-    if ((!overfl) && (!digitalRead(gdo2)) && (rxLoop.state == READ_DATA)) {
-      ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, (uint8_t)rxLoop.bytesLeft);
-      rxLoop.state = DATA_END;
-    }
-
-    if (rxLoop.state == DATA_END) {
-      LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d data_in.L %d",
+      // Process telegram
+      case DATA_END:
+        LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d data_in.L %d",
             rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField), data_in.length);
-      LOGD("Have %d bytes from CC1101 Rx (%d)", (rxLoop.pByteIndex - data_in.data), rxLoop.state);
-      if (mBusDecode(data_in, this->returnFrame)) {
-        LOGD("Packet OK.");
-        this->returnFrame.framemode = rxLoop.framemode;
-        rxLoop.complete = true;
-        this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
-        this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
-        // jak to wywalic ? (ponizej) - cos z linia start(false trzeba zrobic, pewnie aby nie zerowala)
-        return true;
-      }
-      else {
-        LOGE("Error .........");
-      }
+        LOGD("Have %d bytes from CC1101 Rx (%d)", (rxLoop.pByteIndex - data_in.data), rxLoop.state);
+        if (mBusDecode(data_in, this->returnFrame)) {
+          LOGD("Packet OK.");
+          this->returnFrame.framemode = rxLoop.framemode;
+          rxLoop.complete = true;
+          this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
+          this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
+          // jak to wywalic ? (ponizej) - cos z linia start(false trzeba zrobic, pewnie aby nie zerowala)
+          return true;
+        }
+        break;
     }
 
     start(false);
@@ -673,6 +675,7 @@ class rf_mbus {
 
 
   WMbusFrame get_frame() {
+    LOGI("Packet pobrany");
     return this->returnFrame;
   }
 
