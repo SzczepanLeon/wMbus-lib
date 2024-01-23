@@ -103,6 +103,7 @@ enum RxLoopState : uint8_t {
   WAIT_FOR_SYNC = 1,
   WAIT_FOR_DATA = 2,
   READ_DATA     = 3,
+  DATA_END      = 4,
 };
 
     // uint8_t MBbytes[584];
@@ -636,44 +637,25 @@ class rf_mbus {
     // Last part of data from FIFO
     if ((!overfl) && (!digitalRead(gdo2)) && (rxLoop.state > WAIT_FOR_SYNC)) {
       ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, (uint8_t)rxLoop.bytesLeft);
-
-//       LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d",
-//             rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField));
-
-//       LOGD("Have %d bytes from CC1101 Rx", (rxLoop.pByteIndex - data_in.data));
-
-// //
-//       if ((rxLoop.length) && mBusDecode(data_in, this->returnFrame)) {
-//         LOGD("Packet OK.");
-//         this->returnFrame.framemode = rxLoop.framemode;
-//         rxLoop.complete = true;
-//         this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
-//         this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
-//       }
-//       else {
-//         LOGE("Error .........");
-//       }
-//       rxLoop.state = INIT_RX;
-//       return rxLoop.complete;
+      rxLoop.state = DATA_END;
     }
-//
-    LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d",
-          rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField));
 
-    LOGD("Have %d bytes from CC1101 Rx", (rxLoop.pByteIndex - data_in.data));
+    if (rxLoop.state == DATA_END) {
+      LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d",
+            rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField));
+      LOGD("Have %d bytes from CC1101 Rx", (rxLoop.pByteIndex - data_in.data));
+      if (mBusDecode(data_in, this->returnFrame)) {
+        LOGD("Packet OK.");
+        this->returnFrame.framemode = rxLoop.framemode;
+        rxLoop.complete = true;
+        this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
+        this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
+      }
+      else {
+        LOGE("Error .........");
+      }
+    }
 
-    if ((rxLoop.length) && mBusDecode(data_in, this->returnFrame)) {
-      LOGD("Packet OK.");
-      this->returnFrame.framemode = rxLoop.framemode;
-      rxLoop.complete = true;
-      this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
-      this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
-    }
-    else {
-      LOGE("Error .........");
-    }
-    rxLoop.state = INIT_RX;
-//
     start(false);
 
     return rxLoop.complete;
@@ -690,15 +672,15 @@ class rf_mbus {
     uint8_t start(bool force = true) {
       // waiting to long for next part of data?
       // czy nie wydluzyc czasu w przypadku oczekiwania na SYNC? Tzn czy dac reinit_tylko jak juz jestesmy w petli odbierania danych?
-      bool reinit_needed = ((millis() - sync_time_) > max_wait_time_) ? true: false;
-      if (!force) {
-        if (!reinit_needed) {
-          // already in RX?
-          if (ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) == MARCSTATE_RX) {
-            return 0;
-          }
-        }
-      }
+      // bool reinit_needed = ((millis() - sync_time_) > max_wait_time_) ? true: false;
+      // if (!force) {
+      //   if (!reinit_needed) {
+      //     // already in RX?
+      //     if (ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) == MARCSTATE_RX) {
+      //       return 0;
+      //     }
+      //   }
+      // }
       // init RX here, each time we're idle
       rxLoop.state = INIT_RX;
       sync_time_ = millis();
