@@ -643,8 +643,8 @@ class rf_mbus {
 
   uint8_t overfl = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x80;
   // END OF PAKET
-  if ((!overfl) && (!digitalRead(gdo2)) && (RXinfo.state > WAIT_FOR_DATA)) {
-    ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, RXinfo.pByteIndex, (uint8_t)RXinfo.bytesLeft);
+  if ((!overfl) && (!digitalRead(gdo2)) && (rxLoop.state > WAIT_FOR_DATA)) {
+    ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, (uint8_t)rxLoop.bytesLeft);
     rxLoop.state = DATA_END;
 
     LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d data_in.L %d",
