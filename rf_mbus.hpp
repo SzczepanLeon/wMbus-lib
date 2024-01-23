@@ -78,7 +78,7 @@ static const char *TAG_L = "wmbus-lib";
   #include "esphome/core/helpers.h"
   #include <esphome/core/log.h>
   #define LOGVV(...) \
-    esphome::ESP_LOGVV(TAG_L, __VA_ARGS__)
+    esphome::ESP_LOGE(TAG_L, __VA_ARGS__)
   #define LOGV(...) \
     esphome::ESP_LOGV(TAG_L, __VA_ARGS__)
   #define LOGD(...) \
@@ -86,7 +86,7 @@ static const char *TAG_L = "wmbus-lib";
   #define LOGI(...) \
     esphome::ESP_LOGI(TAG_L, __VA_ARGS__)
   #define LOGE(...) \
-    esphome::ESP_LOGE(TAG_L, __VA_ARGS__)
+    esphome::ESP_LOGVV(TAG_L, __VA_ARGS__)
 #else
   #define LOGVV(...) \
     Serial.printf(__VA_ARGS__);
@@ -246,7 +246,7 @@ class rf_mbus {
       LOGD("wMBus-lib: Processing T1 A frame");
       std::vector<unsigned char> RawFrame(t_in.data, t_in.data + t_in.lengthField);
       std::string rawTelegram = esphome::format_hex_pretty(RawFrame);
-      LOGVV("RAW Frame: %s", rawTelegram.c_str());
+      LOGE("RAW Frame: %s", rawTelegram.c_str());
 
       if (decode3OutOf6(&t_in, packetSize(t_in.lengthField))) {
         std::vector<unsigned char> frame(t_in.data, t_in.data + t_in.length);
