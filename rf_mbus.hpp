@@ -554,7 +554,7 @@ class rf_mbus {
 
       // RX active, awaiting SYNC
       case WAIT_FOR_SYNC:
-        if (digitalRead(this->gdo2)) {
+        if (digitalRead(this->gdo2)) { // assert when SYNC detected
           rxLoop.state = WAIT_FOR_DATA;
           sync_time_ = millis();
         }
@@ -562,7 +562,7 @@ class rf_mbus {
 
       // awaiting pkt len to read
       case WAIT_FOR_DATA:
-        if (digitalRead(this->gdo0)) {
+        if (digitalRead(this->gdo0)) { // assert when Rx FIFO buffer threshold reached
           // Read the 3 first bytes,
           ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, 3);
           const uint8_t *currentByte = rxLoop.pByteIndex;
@@ -627,9 +627,9 @@ class rf_mbus {
 
       // awaiting more data to be read
       case READ_DATA:
-        if (digitalRead(this->gdo0)) {
+        if (digitalRead(this->gdo0)) { // assert when Rx FIFO buffer threshold reached
           // Read data from CC1101 RX FIFO
-          // Do not empty the FIFO (See the CC110x 2500 Errata Note)
+          // Do not empty the FIFO (See the CC1101 swrz020e errata note)
           uint8_t bytesInFIFO = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x7F;        
           ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, bytesInFIFO - 1);
 
@@ -638,15 +638,18 @@ class rf_mbus {
 
           max_wait_time_ += extra_time_;
         }
-        break;
-
-      // Read last part of data
-      case READ_DATA:
-        if (!digitalRead(this->gdo2)) {
+        else if (!digitalRead(this->gdo2)) { // de-assert at the end of packet or on RxFIFO overflow
           uint8_t overfl = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x80;
+          // Read last part of data
           if (!overfl) {
             ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, (uint8_t)rxLoop.bytesLeft);
             rxLoop.state = DATA_END;
+          }
+          // overflow, reinit loop
+          else {
+            LOGE("Rx FIFO overflow");
+            rxLoop.state = INIT_RX;
+            return false;
           }
         }
         break;
