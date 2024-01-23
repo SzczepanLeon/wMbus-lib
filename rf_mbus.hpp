@@ -180,17 +180,19 @@ class rf_mbus {
 
     // Validate CRC
     static bool crcValid(const uint8_t *t_bytes, uint8_t t_crcOffset) {
+      bool retVal{false};
       static const uint16_t CRC_POLY{0x3D65};
       uint16_t crcCalc = ~crc16(t_bytes, t_crcOffset, CRC_POLY, 0);
       uint16_t crcRead = (((uint16_t)t_bytes[t_crcOffset] << 8) | t_bytes[t_crcOffset+1]);
       if (crcCalc != crcRead) {
-        LOG_D("CRC error: Calculated: 0x%04X, Read: 0x%04X", crcCalc, crcRead);
-        return false;
+        LOG_V("  calculated: 0x%04X, read: 0x%04X  !!!", crcCalc, crcRead);
+        retVal = false;
       }
       else {
-        LOG_D("CRC OK:    Calculated: 0x%04X, Read: 0x%04X", crcCalc, crcRead);
-        return true;
+        LOG_V("  calculated: 0x%04X, read: 0x%04X", crcCalc, crcRead);
+        retVal = true;
       }
+      return retVal;
     }
 
   // Mapping from 6 bits to 4 bits. "3of6" coding used for Mode T
@@ -225,7 +227,7 @@ class rf_mbus {
         LOG_D("wMBus-lib: Processing C1 A frame");
         std::vector<unsigned char> T1Frame(t_in.data, t_in.data + t_in.length);
         std::string telegram = esphome::format_hex_pretty(T1Frame);
-        LOG_D("CRC Frame: %s", telegram.c_str());
+        LOG_V("CRC Frame: %s", telegram.c_str());
         if (mBusDecodeFormatA(t_in, t_frame)) {
           retVal = true;
         }
@@ -234,7 +236,7 @@ class rf_mbus {
         LOG_D("wMBus-lib: Processing C1 B frame");
         std::vector<unsigned char> frame(t_in.data, t_in.data + t_in.length);
         std::string telegram = esphome::format_hex_pretty(frame);
-        LOG_D("CRC Frame: %s", telegram.c_str());
+        LOG_V("CRC Frame: %s", telegram.c_str());
         if (mBusDecodeFormatB(t_in, t_frame)) {
           retVal = true;
         }
@@ -244,20 +246,23 @@ class rf_mbus {
       LOG_D("wMBus-lib: Processing T1 A frame");
       std::vector<unsigned char> RawFrame(t_in.data, t_in.data + t_in.lengthField);
       std::string rawTelegram = esphome::format_hex_pretty(RawFrame);
-      LOG_D("RAW Frame: %s", rawTelegram.c_str());
+      LOG_VV("RAW Frame: %s", rawTelegram.c_str());
 
       if (decode3OutOf6(&t_in, packetSize(t_in.lengthField))) {
         std::vector<unsigned char> frame(t_in.data, t_in.data + t_in.length);
         std::string telegram = esphome::format_hex_pretty(frame);
-        LOG_D("CRC Frame: %s", telegram.c_str());
+        LOG_V("CRC Frame: %s", telegram.c_str());
         if (mBusDecodeFormatA(t_in, t_frame)) {
           retVal = true;
         }
       }
+      else {
+        LOG_VV("wMBus-lib: Failed to decode 3 out of 6");
+      }
 
     }
     std::string telegram = esphome::format_hex_pretty(t_frame.frame);
-    LOG_D("    Frame: %s", telegram.c_str());
+    LOG_VV("    Frame: %s", telegram.c_str());
     return retVal;
   }
 
@@ -289,7 +294,7 @@ class rf_mbus {
     uint8_t L = t_in.data[0];
 
     // Validate CRC
-    LOG_D("Validating CRC for Block1");
+    LOG_V("Validating CRC for Block1");
     if (!crcValid(t_in.data, (BLOCK1A_SIZE - 2))) {
       return false;
     }
@@ -297,8 +302,8 @@ class rf_mbus {
     // Check length of package is sufficient
     uint8_t num_data_blocks = (L - 9 + 15) / 16;                                           // Data blocks are 16 bytes long + 2 CRC bytes (not counted in L)
     if ((L < 9) || (((L - 9 + (num_data_blocks * 2))) > (t_in.length - BLOCK1A_SIZE))) {   // add CRC bytes for each data block
-      LOG_D("M-Bus: Package (%u) too short for packet Length: %u", t_in.length, L);
-      LOG_D("M-Bus: %u > %u", (L - 9 + (num_data_blocks * 2)), (t_in.length - BLOCK1A_SIZE));
+      LOG_V("M-Bus: Package (%u) too short for packet Length: %u", t_in.length, L);
+      LOG_VV("M-Bus: %u > %u", (L - 9 + (num_data_blocks * 2)), (t_in.length - BLOCK1A_SIZE));
       return false;
     }
 
@@ -309,7 +314,7 @@ class rf_mbus {
       uint8_t block_size    = (MIN((L - 9 - (n * 16)), 16));          // Maximum block size is 16 Data (without 2 CRC)
 
       // Validate CRC
-      LOG_D("Validating CRC for Block%u", (n + 2));
+      LOG_V("Validating CRC for Block%u", (n + 2));
       if (!crcValid(in_ptr, (block_size))) {
         return false;
       }
@@ -351,15 +356,15 @@ class rf_mbus {
 
     // Check length of package is sufficient
     if ((L < 12) || ((L + 1) > t_in.length)) {  // pod len mam miec zapisane ile bajtow odebralem
-      LOG_D("M-Bus: Package (%u) too short for packet Length: %u", t_in.length, L);
-      LOG_D("M-Bus: %u > %u", (L + 1), t_in.length);
+      LOG_V("M-Bus: Package (%u) too short for packet Length: %u", t_in.length, L);
+      LOG_VV("M-Bus: %u > %u", (L + 1), t_in.length);
       return false;
     }
 
     blockSize = MIN((L - 1), (BLOCK1B_SIZE + BLOCK2B_SIZE - 2));
     blockStartPtr = t_in.data;
     // Validate CRC for Block1 + Block2
-    LOG_D("Validating CRC for Block1 + Block2");
+    LOG_V("Validating CRC for Block1 + Block2");
     if (!crcValid(t_in.data, blockSize)) {
       return false;
     }
@@ -373,7 +378,7 @@ class rf_mbus {
       blockSize = (L - L_OFFSET - 1);
       blockStartPtr = (t_in.data + L_OFFSET);
       // Validate CRC for Block3
-      LOG_D("Validating CRC for Block3");
+      LOG_V("Validating CRC for Block3");
       if (!crcValid(blockStartPtr, blockSize)) {
         return false;
       }
@@ -650,8 +655,6 @@ class rf_mbus {
         rxStatus = 1;
       }
 //
-
-
 
       if (rxStatus == 1) {
         LOG_D("Packet OK.");
