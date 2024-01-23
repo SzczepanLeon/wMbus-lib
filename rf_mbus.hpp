@@ -588,6 +588,7 @@ class rf_mbus {
             else {
               LOGE("Unknown type 0x%02X", *currentByte);
               rxLoop.state = INIT_RX;
+              return false;
               // czy tu dac return czy tez inaczej rozwiazac powrot do poczatku?
             }
           }
@@ -604,6 +605,7 @@ class rf_mbus {
           else {
             LOGE("Unknown mode 0x%02X", *currentByte);
             rxLoop.state = INIT_RX;
+            return false;
           }
 
           // Set CC1101 into length mode
