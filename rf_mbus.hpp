@@ -224,7 +224,7 @@ class rf_mbus {
       if (t_in.block == 'A') {
         LOG_D("wMBus-lib: Processing C1 A frame\n");
         std::vector<unsigned char> T1Frame(t_in.data, t_in.data + t_in.length);
-        std::string telegram = format_my_hex_pretty(T1Frame);
+        std::string telegram = esphome::format_hex_pretty(T1Frame);
         LOG_D("CRC Frame: %s\n", telegram.c_str());
         if (mBusDecodeFormatA(t_in, t_frame)) {
           retVal = true;
@@ -233,7 +233,7 @@ class rf_mbus {
       else if (t_in.block == 'B') {
         LOG_D("wMBus-lib: Processing C1 B frame\n");
         std::vector<unsigned char> frame(t_in.data, t_in.data + t_in.length);
-        std::string telegram = format_my_hex_pretty(frame);
+        std::string telegram = esphome::format_hex_pretty(frame);
         LOG_D("CRC Frame: %s\n", telegram.c_str());
         if (mBusDecodeFormatB(t_in, t_frame)) {
           retVal = true;
@@ -243,12 +243,12 @@ class rf_mbus {
     else if (t_in.mode == 'T') {
       LOG_D("wMBus-lib: Processing T1 A frame\n");
       std::vector<unsigned char> RawFrame(t_in.data, t_in.data + t_in.lengthField);
-      std::string rawTelegram = format_my_hex_pretty(RawFrame);
+      std::string rawTelegram = esphome::format_hex_pretty(RawFrame);
       LOG_D("RAW Frame: %s\n", rawTelegram.c_str());
 
       if (decode3OutOf6(&t_in, packetSize(t_in.lengthField))) {
         std::vector<unsigned char> frame(t_in.data, t_in.data + t_in.length);
-        std::string telegram = format_my_hex_pretty(frame);
+        std::string telegram = esphome::format_hex_pretty(frame);
         LOG_D("CRC Frame: %s\n", telegram.c_str());
         if (mBusDecodeFormatA(t_in, t_frame)) {
           retVal = true;
@@ -256,7 +256,7 @@ class rf_mbus {
       }
 
     }
-    std::string telegram = format_my_hex_pretty(t_frame.frame);
+    std::string telegram = esphome::format_hex_pretty(t_frame.frame);
     LOG_D("    Frame: %s\n", telegram.c_str());
     return retVal;
   }
@@ -679,10 +679,6 @@ class rf_mbus {
 
 
   WMbusFrame get_frame() {
-    // std::vector<unsigned char> frame(data_out.data, data_out.data + data_out.length);
-    // std::string telegram = esphome::format_hex_pretty(frame);
-    // LOG_D("    Frame: %s", telegram.c_str());
-    // this->returnFrame.frame = frame;
     return this->returnFrame;
   }
 
