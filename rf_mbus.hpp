@@ -660,12 +660,12 @@ class rf_mbus {
     else {
       Serial.println("wMBus-lib:  Error during decoding 'unknown'");
     }
-    RXinfo.state = INIT_RX;
-    return RXinfo.complete;
+    rxLoop.state = INIT_RX;
+    return rxLoop.complete;
   }
   start(false);
 
-  return RXinfo.complete;
+  return rxLoop.complete;
   }
 
 
