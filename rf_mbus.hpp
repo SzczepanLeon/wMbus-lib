@@ -598,6 +598,7 @@ class rf_mbus {
             rxLoop.lengthField = L;
             data_in.lengthField = L;
             rxLoop.length = byteSize(packetSize(L));
+            data_in.length = byteSize(packetSize(L));
             data_in.mode = 'T';
             data_in.block = 'A';
           }
@@ -648,8 +649,8 @@ class rf_mbus {
     }
 
     if (rxLoop.state == DATA_END) {
-      LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d",
-            rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField));
+      LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d data_in.L %d",
+            rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField), data_in.length);
       LOGD("Have %d bytes from CC1101 Rx (%d)", (rxLoop.pByteIndex - data_in.data), rxLoop.state);
       if (mBusDecode(data_in, this->returnFrame)) {
         LOGD("Packet OK.");
@@ -657,6 +658,8 @@ class rf_mbus {
         rxLoop.complete = true;
         this->returnFrame.rssi = (int8_t)ELECHOUSE_cc1101.getRssi();
         this->returnFrame.lqi = (uint8_t)ELECHOUSE_cc1101.getLqi();
+        // jak to wywalic ? (ponizej) - cos z linia start(false trzeba zrobic, pewnie aby nie zerowala)
+        return true;
       }
       else {
         LOGE("Error .........");
