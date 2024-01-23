@@ -648,7 +648,7 @@ class rf_mbus {
     if (rxLoop.state == DATA_END) {
       LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d",
             rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField));
-      LOGD("Have %d bytes from CC1101 Rx", (rxLoop.pByteIndex - data_in.data));
+      LOGD("Have %d bytes from CC1101 Rx (%d)", (rxLoop.pByteIndex - data_in.data), rxLoop.state);
       if (mBusDecode(data_in, this->returnFrame)) {
         LOGD("Packet OK.");
         this->returnFrame.framemode = rxLoop.framemode;
