@@ -257,12 +257,12 @@ class rf_mbus {
         }
       }
       else {
-        LOG_VV("wMBus-lib: Failed to decode 3 out of 6");
+        // LOG_VV("wMBus-lib: Failed to decode 3 out of 6");
       }
 
     }
     std::string telegram = esphome::format_hex_pretty(t_frame.frame);
-    LOG_VV("    Frame: %s", telegram.c_str());
+    // LOG_VV("    Frame: %s", telegram.c_str());
     return retVal;
   }
 
@@ -303,7 +303,7 @@ class rf_mbus {
     uint8_t num_data_blocks = (L - 9 + 15) / 16;                                           // Data blocks are 16 bytes long + 2 CRC bytes (not counted in L)
     if ((L < 9) || (((L - 9 + (num_data_blocks * 2))) > (t_in.length - BLOCK1A_SIZE))) {   // add CRC bytes for each data block
       LOG_V("M-Bus: Package (%u) too short for packet Length: %u", t_in.length, L);
-      LOG_VV("M-Bus: %u > %u", (L - 9 + (num_data_blocks * 2)), (t_in.length - BLOCK1A_SIZE));
+      // LOG_VV("M-Bus: %u > %u", (L - 9 + (num_data_blocks * 2)), (t_in.length - BLOCK1A_SIZE));
       return false;
     }
 
@@ -357,7 +357,7 @@ class rf_mbus {
     // Check length of package is sufficient
     if ((L < 12) || ((L + 1) > t_in.length)) {  // pod len mam miec zapisane ile bajtow odebralem
       LOG_V("M-Bus: Package (%u) too short for packet Length: %u", t_in.length, L);
-      LOG_VV("M-Bus: %u > %u", (L + 1), t_in.length);
+      // LOG_VV("M-Bus: %u > %u", (L + 1), t_in.length);
       return false;
     }
 
