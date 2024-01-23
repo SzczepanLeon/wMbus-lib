@@ -76,6 +76,10 @@ static const char *TAG_L = "wmbus-lib";
 #if defined(ESPHOME)
   #include "esphome/core/helpers.h"
   #include <esphome/core/log.h>
+  // dorobic VV trcey w kodzie
+  // zrobic tak ze jak nie ma danego LOG to sie nie pluje
+  #define LOGVV(...) \
+    esphome::ESP_LOGVV(TAG_L, __VA_ARGS__)
   #define LOGV(...) \
     esphome::ESP_LOGV(TAG_L, __VA_ARGS__)
   #define LOGD(...) \
@@ -592,6 +596,8 @@ class rf_mbus {
               return false;
               // czy tu dac return czy tez inaczej rozwiazac powrot do poczatku?
             }
+            *(rxLoop.pByteIndex) = rxLoop.lengthField;
+            rxLoop.pByteIndex += 2;
             // czy mam cofnac o 2 indeks rxLoop.pByteIndex?? pewnie tak
           }
           // Mode T Block A
