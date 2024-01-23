@@ -184,7 +184,7 @@ class rf_mbus {
       uint16_t crcCalc = ~crc16(t_bytes, t_crcOffset, CRC_POLY, 0);
       uint16_t crcRead = (((uint16_t)t_bytes[t_crcOffset] << 8) | t_bytes[t_crcOffset+1]);
       if (crcCalc != crcRead) {
-        LOG_D("CRC error: Calculated: 0x%40X, Read: 0x%40X", crcCalc, crcRead);
+        LOG_D("CRC error: Calculated: 0x%04X, Read: 0x%04X", crcCalc, crcRead);
         return false;
       }
       else {
@@ -222,34 +222,34 @@ class rf_mbus {
     bool retVal{false};
     if (t_in.mode == 'C') {
       if (t_in.block == 'A') {
-        LOG_D("wMBus-lib: Processing C1 A frame\n");
+        LOG_D("wMBus-lib: Processing C1 A frame");
         std::vector<unsigned char> T1Frame(t_in.data, t_in.data + t_in.length);
         std::string telegram = esphome::format_hex_pretty(T1Frame);
-        LOG_D("CRC Frame: %s\n", telegram.c_str());
+        LOG_D("CRC Frame: %s", telegram.c_str());
         if (mBusDecodeFormatA(t_in, t_frame)) {
           retVal = true;
         }
       }
       else if (t_in.block == 'B') {
-        LOG_D("wMBus-lib: Processing C1 B frame\n");
+        LOG_D("wMBus-lib: Processing C1 B frame");
         std::vector<unsigned char> frame(t_in.data, t_in.data + t_in.length);
         std::string telegram = esphome::format_hex_pretty(frame);
-        LOG_D("CRC Frame: %s\n", telegram.c_str());
+        LOG_D("CRC Frame: %s", telegram.c_str());
         if (mBusDecodeFormatB(t_in, t_frame)) {
           retVal = true;
         }
       }
     }
     else if (t_in.mode == 'T') {
-      LOG_D("wMBus-lib: Processing T1 A frame\n");
+      LOG_D("wMBus-lib: Processing T1 A frame");
       std::vector<unsigned char> RawFrame(t_in.data, t_in.data + t_in.lengthField);
       std::string rawTelegram = esphome::format_hex_pretty(RawFrame);
-      LOG_D("RAW Frame: %s\n", rawTelegram.c_str());
+      LOG_D("RAW Frame: %s", rawTelegram.c_str());
 
       if (decode3OutOf6(&t_in, packetSize(t_in.lengthField))) {
         std::vector<unsigned char> frame(t_in.data, t_in.data + t_in.length);
         std::string telegram = esphome::format_hex_pretty(frame);
-        LOG_D("CRC Frame: %s\n", telegram.c_str());
+        LOG_D("CRC Frame: %s", telegram.c_str());
         if (mBusDecodeFormatA(t_in, t_frame)) {
           retVal = true;
         }
@@ -257,7 +257,7 @@ class rf_mbus {
 
     }
     std::string telegram = esphome::format_hex_pretty(t_frame.frame);
-    LOG_D("    Frame: %s\n", telegram.c_str());
+    LOG_D("    Frame: %s", telegram.c_str());
     return retVal;
   }
 
@@ -296,7 +296,7 @@ class rf_mbus {
 
     // Check length of package is sufficient
     uint8_t num_data_blocks = (L - 9 + 15) / 16;                                           // Data blocks are 16 bytes long + 2 CRC bytes (not counted in L)
-    if ((L < 9) || (((L - 9 + (num_data_blocks * 2))) > (t_in.length - BLOCK1A_SIZE))) {  // add CRC bytes for each data block
+    if ((L < 9) || (((L - 9 + (num_data_blocks * 2))) > (t_in.length - BLOCK1A_SIZE))) {   // add CRC bytes for each data block
       LOG_D("M-Bus: Package (%u) too short for packet Length: %u", t_in.length, L);
       LOG_D("M-Bus: %u > %u", (L - 9 + (num_data_blocks * 2)), (t_in.length - BLOCK1A_SIZE));
       return false;
@@ -306,7 +306,7 @@ class rf_mbus {
     // Get all remaining data blocks and concatenate into data array (removing CRC bytes)
     for (uint8_t n{0}; n < num_data_blocks; ++n) {
       const uint8_t *in_ptr = (t_in.data + BLOCK1A_SIZE + (n * 18));  // Pointer to where data starts. Each block is 18 bytes
-      uint8_t block_size    = (MIN((L - 9 - (n * 16)), 16));           // Maximum block size is 16 Data (without 2 CRC)
+      uint8_t block_size    = (MIN((L - 9 - (n * 16)), 16));          // Maximum block size is 16 Data (without 2 CRC)
 
       // Validate CRC
       LOG_D("Validating CRC for Block%u", (n + 2));
@@ -557,17 +557,17 @@ class rf_mbus {
           // Read the 3 first bytes,
           ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, 3);
           const uint8_t *currentByte = rxLoop.pByteIndex;
-          // ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, data_in.data, 3);
-          // const uint8_t *currentByte = data_in.data;
           // Mode C
           if (*currentByte == 0x54) {
             currentByte++;
+            data_in.mode = 'C';
             // Block A
             if (*currentByte == 0xCD) {
               currentByte++;
               uint8_t L = *currentByte;
               rxLoop.lengthField = L;
               rxLoop.length = packetSize(L);
+              data_in.block = 'A';
             }
             // Block B
             else if (*currentByte == 0x3D) {
@@ -575,6 +575,7 @@ class rf_mbus {
               uint8_t L = *currentByte;
               rxLoop.lengthField = L;
               rxLoop.length = 2 + 1 + L;
+              data_in.block = 'B';
             }
             else {
               // Unknown type, reset.
@@ -588,6 +589,8 @@ class rf_mbus {
             rxLoop.lengthField = L;
             data_in.lengthField = L;
             rxLoop.length = byteSize(packetSize(L));
+            data_in.mode = 'T';
+            data_in.block = 'A';
           }
           // Unknown mode
           else {
@@ -639,12 +642,9 @@ class rf_mbus {
 
       // decode
       uint16_t rxStatus = 1;
-      uint16_t rxLength = 0;
       LOG_D("\n\nRX bytes %d, L %d (%02X), total frame length %d", rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField));
 
 //
-      data_in.mode = 'T';
-      data_in.block = 'A';
       if (mBusDecode(data_in, this->returnFrame)) {
         LOG_D("Decode OK.");
         rxStatus = 1;
@@ -753,9 +753,8 @@ class rf_mbus {
     // doSciagniecia: 435
 
     m_bus_data_t data_in{0};  // Data from Physical layer decoded to bytes
-    m_bus_data_t data_out{0}; // Data for Data Link layer
 
-    WMbusFrame returnFrame;
+    WMbusFrame returnFrame;  // Data for Data Link layer
 
     RxLoopData rxLoop;
 
