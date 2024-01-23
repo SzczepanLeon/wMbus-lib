@@ -672,15 +672,15 @@ class rf_mbus {
     uint8_t start(bool force = true) {
       // waiting to long for next part of data?
       // czy nie wydluzyc czasu w przypadku oczekiwania na SYNC? Tzn czy dac reinit_tylko jak juz jestesmy w petli odbierania danych?
-      // bool reinit_needed = ((millis() - sync_time_) > max_wait_time_) ? true: false;
-      // if (!force) {
-      //   if (!reinit_needed) {
-      //     // already in RX?
-      //     if (ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) == MARCSTATE_RX) {
-      //       return 0;
-      //     }
-      //   }
-      // }
+      bool reinit_needed = ((millis() - sync_time_) > max_wait_time_) ? true: false;
+      if (!force) {
+        if (!reinit_needed) {
+          // already in RX?
+          if (ELECHOUSE_cc1101.SpiReadStatus(CC1101_MARCSTATE) == MARCSTATE_RX) {
+            return 0;
+          }
+        }
+      }
       // init RX here, each time we're idle
       rxLoop.state = INIT_RX;
       sync_time_ = millis();
