@@ -63,7 +63,6 @@ static const char *TAG_L = "wmbus-lib";
 #define BLOCK1A_SIZE 12     // Size of Block 1, format A
 #define BLOCK1B_SIZE 10     // Size of Block 1, format B
 #define BLOCK2B_SIZE 118    // Maximum size of Block 2, format B
-#define BLOCK1_2B_SIZE 128
 
 // Helper macros, collides with MSVC's stdlib.h unless NOMINMAX is used
 #ifndef MAX
@@ -219,124 +218,167 @@ class rf_mbus {
     return retVal;
   }
 
-  static bool mBusDecode(m_bus_data_t *t_in, WMbusFrame &t_frame) {
+  static bool mBusDecode(m_bus_data_t &t_in, WMbusFrame &t_frame) {
     bool retVal{false};
-    if (t_in->mode == 'C') {
-      if (t_in->block == 'A') {
-        LOG_D("wMBus-lib: Processing C1 A frame");
-        std::vector<unsigned char> T1Frame(t_in->data, t_in->data + t_in->length);
-        std::string telegram = esphome::format_hex_pretty(T1Frame);
-        LOG_D("CRC Frame: %s", telegram.c_str());
+    if (t_in.mode == 'C') {
+      if (t_in.block == 'A') {
+        LOG_D("wMBus-lib: Processing C1 A frame\n");
+        std::vector<unsigned char> T1Frame(t_in.data, t_in.data + t_in.length);
+        std::string telegram = format_my_hex_pretty(T1Frame);
+        LOG_D("CRC Frame: %s\n", telegram.c_str());
         if (mBusDecodeFormatA(t_in, t_frame)) {
           retVal = true;
         }
       }
-      else if (t_in->block == 'A') {
-        LOG_D("wMBus-lib: Processing C1 B frame");
-        std::vector<unsigned char> frame(t_in->data, t_in->data + t_in->length);
-        std::string telegram = esphome::format_hex_pretty(frame);
-        LOG_D("CRC Frame: %s", telegram.c_str());
+      else if (t_in.block == 'B') {
+        LOG_D("wMBus-lib: Processing C1 B frame\n");
+        std::vector<unsigned char> frame(t_in.data, t_in.data + t_in.length);
+        std::string telegram = format_my_hex_pretty(frame);
+        LOG_D("CRC Frame: %s\n", telegram.c_str());
         if (mBusDecodeFormatB(t_in, t_frame)) {
           retVal = true;
         }
       }
     }
-    else if (t_in->mode == 'T') {
-      LOG_D("wMBus-lib: Processing T1 A frame");
-      std::vector<unsigned char> RawFrame(t_in->data, t_in->data + t_in->lengthField);
-      std::string rawTelegram = esphome::format_hex_pretty(RawFrame);
-      LOG_D("RAW Frame: %s", rawTelegram.c_str());
+    else if (t_in.mode == 'T') {
+      LOG_D("wMBus-lib: Processing T1 A frame\n");
+      std::vector<unsigned char> RawFrame(t_in.data, t_in.data + t_in.lengthField);
+      std::string rawTelegram = format_my_hex_pretty(RawFrame);
+      LOG_D("RAW Frame: %s\n", rawTelegram.c_str());
 
-      if (decode3OutOf6(t_in, packetSize(t_in->lengthField))) {
-        std::vector<unsigned char> frame(t_in->data, t_in->data + t_in->length);
-        std::string telegram = esphome::format_hex_pretty(frame);
-        LOG_D("CRC Frame: %s", telegram.c_str());
+      if (decode3OutOf6(&t_in, packetSize(t_in.lengthField))) {
+        std::vector<unsigned char> frame(t_in.data, t_in.data + t_in.length);
+        std::string telegram = format_my_hex_pretty(frame);
+        LOG_D("CRC Frame: %s\n", telegram.c_str());
         if (mBusDecodeFormatA(t_in, t_frame)) {
           retVal = true;
         }
       }
 
     }
-    std::string telegram = esphome::format_hex_pretty(t_frame.frame);
-    LOG_D("    Frame: %s", telegram.c_str());
+    std::string telegram = format_my_hex_pretty(t_frame.frame);
+    LOG_D("    Frame: %s\n", telegram.c_str());
     return retVal;
   }
 
 
-  static bool mBusDecodeFormatA(const m_bus_data_t *t_in, WMbusFrame &t_frame) {  // zmienic OUT na vektor (tzn w strukturze), przekazywac jao referencje bo to C++
-    uint8_t L = t_in->data[0];                                                    // myStruct &t_out
+/*
+  Format A
 
-    // Store length of data
-    // t_out->length  = (L - 9 + BLOCK1A_SIZE - 2);
+  L-field = length without CRC fields and without L (1 byte)
+
+    Block 1
+  ---------------------------------------------------
+  | L-field | C-field | M-field | A-field |   CRC   |
+  |  1 byte |  1 byte | 2 bytes | 6 bytes | 2 bytes |
+  ---------------------------------------------------
+
+    Block 2
+  ---------------------------------------------------
+  | CI-field |         Data-field         |   CRC   |
+  |  1 byte  | 15 or (((L-9) mod 16) – 1) | 2 bytes |
+  ---------------------------------------------------
+
+    Block n (optional)
+  ---------------------------------------------------
+  |               Data-field              |   CRC   |
+  |       16 or ((L-9) mod 16) bytes      | 2 bytes |
+  ---------------------------------------------------
+*/
+  static bool mBusDecodeFormatA(const m_bus_data_t &t_in, WMbusFrame &t_frame) {  // in jako referencje przekazywac
+    uint8_t L = t_in.data[0];
 
     // Validate CRC
-    if (!crcValid(t_in->data, 10)) {
+    LOG_D("Validating CRC for Block1");
+    if (!crcValid(t_in.data, (BLOCK1A_SIZE - 2))) {
       return false;
     }
 
     // Check length of package is sufficient
-    uint8_t num_data_blocks = (L - 9 + 15) / 16;                                         // Data blocks are 16 bytes long + 2 CRC bytes (not counted in L)
-    if ((L < 9) || (((L - 9 + (num_data_blocks * 2))) > (t_in->length - BLOCK1A_SIZE))) {  // add CRC bytes for each data block
-      LOG_D("M-Bus: Package (%u) too short for packet Length: %u", t_in->length, L);
-      LOG_D("M-Bus: %u > %u", (L - 9 + (num_data_blocks * 2)), (t_in->length - BLOCK1A_SIZE));
+    uint8_t num_data_blocks = (L - 9 + 15) / 16;                                           // Data blocks are 16 bytes long + 2 CRC bytes (not counted in L)
+    if ((L < 9) || (((L - 9 + (num_data_blocks * 2))) > (t_in.length - BLOCK1A_SIZE))) {  // add CRC bytes for each data block
+      LOG_D("M-Bus: Package (%u) too short for packet Length: %u", t_in.length, L);
+      LOG_D("M-Bus: %u > %u", (L - 9 + (num_data_blocks * 2)), (t_in.length - BLOCK1A_SIZE));
       return false;
     }
 
-
-    t_frame.frame.insert(t_frame.frame.begin(), t_in->data, ( t_in->data + (BLOCK1A_SIZE - 2)));
-    // memcpy(t_out->data, t_in->data, (BLOCK1A_SIZE - 2));
+    t_frame.frame.insert(t_frame.frame.begin(), t_in.data, ( t_in.data + (BLOCK1A_SIZE - 2)));
     // Get all remaining data blocks and concatenate into data array (removing CRC bytes)
     for (uint8_t n{0}; n < num_data_blocks; ++n) {
-      const uint8_t *in_ptr = (t_in->data + BLOCK1A_SIZE + (n * 18));       // Pointer to where data starts. Each block is 18 bytes
-      // uint8_t *out_ptr      = (t_frame.frame.begin() + (n * 16) + BLOCK1A_SIZE - 2);  // Pointer into block where data starts.
-      uint8_t block_size    = (MIN((L - 9 - (n * 16)), 16) + 2);            // Maximum block size is 16 Data + 2 CRC
+      const uint8_t *in_ptr = (t_in.data + BLOCK1A_SIZE + (n * 18));  // Pointer to where data starts. Each block is 18 bytes
+      uint8_t block_size    = (MIN((L - 9 - (n * 16)), 16));           // Maximum block size is 16 Data (without 2 CRC)
 
       // Validate CRC
-      if (!crcValid(in_ptr, (block_size - 2))) {
+      LOG_D("Validating CRC for Block%u", (n + 2));
+      if (!crcValid(in_ptr, (block_size))) {
         return false;
       }
 
       // Get block data
-      // memcpy(out_ptr, in_ptr, block_size);
-      // t_frame.frame.insert((t_frame.frame.begin() + ((n * 16) + BLOCK1A_SIZE - 2)), in_ptr, block_size);
-      // t_frame.frame.insert((t_frame.frame.begin() + ((n * 16) + BLOCK1A_SIZE - 2)), in_ptr, out_ptr);
       t_frame.frame.insert((t_frame.frame.begin() + ((n * 16) + BLOCK1A_SIZE - 2)), in_ptr, (in_ptr + block_size));
-      // memcpy(out_ptr, in_ptr, block_size);
     }
 
     return true;
   }
 
-  static bool mBusDecodeFormatB(const m_bus_data_t *t_in, WMbusFrame &t_frame) {
-    uint8_t L = t_in->data[0];
+/*
+  Format B
 
-    // Store length of data
-    // t_out->length = (L - (9 + 2) + BLOCK1B_SIZE - 2);
+  L-field = length with CRC fields and without L (1 byte)
+
+    Block 1
+  ---------------------------------------------------
+  |   L-field  |   C-field  |  M-field  |  A-field  |
+  |    1 byte  |    1 byte  |  2 bytes  |  6 bytes  |
+  ---------------------------------------------------
+
+    Block 2
+  ---------------------------------------------------
+  | CI-field |         Data-field         |   CRC   |
+  |  1 byte  |      115 (L-12) bytes      | 2 bytes |
+  ---------------------------------------------------
+
+    Block 3 (optional)
+  ---------------------------------------------------
+  |               Data-field              |   CRC   |
+  |             (L-129) bytes             | 2 bytes |
+  ---------------------------------------------------
+*/
+  static bool mBusDecodeFormatB(const m_bus_data_t &t_in, WMbusFrame &t_frame) {
+    uint8_t L = t_in.data[0];
+    const uint8_t *blockStartPtr{nullptr};
+    uint8_t blockSize{0};
 
     // Check length of package is sufficient
-    if ((L < 12) || ((L + 1) > t_in->length)) {  // L includes all bytes except itself
-      LOG_E("M-Bus: Package too short for Length: %u\n", L);
+    if ((L < 12) || ((L + 1) > t_in.length)) {  // pod len mam miec zapisane ile bajtow odebralem
+      LOG_D("M-Bus: Package (%u) too short for packet Length: %u", t_in.length, L);
+      LOG_D("M-Bus: %u > %u", (L + 1), t_in.length);
       return false;
     }
 
-    // Validate CRC
-    crcValid(t_in->data, MIN((L - 1), (BLOCK1B_SIZE + BLOCK2B_SIZE - 2)));
+    blockSize = MIN((L - 1), (BLOCK1B_SIZE + BLOCK2B_SIZE - 2));
+    blockStartPtr = t_in.data;
+    // Validate CRC for Block1 + Block2
+    LOG_D("Validating CRC for Block1 + Block2");
+    if (!crcValid(t_in.data, blockSize)) {
+      return false;
+    }
 
-    // Get data from Block 2
-    // memcpy(t_out->data, t_in->data, (MIN((L - 11), (BLOCK2B_SIZE - 2))) + BLOCK1B_SIZE);
+    // Get data from Block1 + Block2
+    t_frame.frame.insert(t_frame.frame.begin(), blockStartPtr, (blockStartPtr + blockSize));
 
-    // Extract extra block for long telegrams (not tested!)
-    uint8_t L_OFFSET = (BLOCK1B_SIZE + BLOCK2B_SIZE - 1);  // How much to subtract from L (127)
-    if (L > (L_OFFSET + 2)) {                              // Any more data? (besided 2 extra CRC)
-      // Validate CRC
-      if (!crcValid((t_in->data + BLOCK1B_SIZE + BLOCK2B_SIZE), (L - L_OFFSET - 2))) {
+    // Check if Block3 is present (long telegrams)
+    const uint8_t L_OFFSET = (BLOCK1B_SIZE + BLOCK2B_SIZE);
+    if (L > (L_OFFSET + 2)) {
+      blockSize = (L - L_OFFSET - 1);
+      blockStartPtr = (t_in.data + L_OFFSET);
+      // Validate CRC for Block3
+      LOG_D("Validating CRC for Block3");
+      if (!crcValid(blockStartPtr, blockSize)) {
         return false;
       }
-
-      // Get Block 3
-      // memcpy((t_out->data + (BLOCK2B_SIZE - 2)), (t_in->data + BLOCK2B_SIZE), (L - L_OFFSET - 2));
-
-      // t_out->length -= 2;   // Subtract the two extra CRC bytes
+      // Get Block3
+      t_frame.frame.insert((t_frame.frame.end()), blockStartPtr, (blockStartPtr + blockSize));
     }
     return true;
   }
@@ -603,7 +645,7 @@ class rf_mbus {
 //
       data_in.mode = 'T';
       data_in.block = 'A';
-      if (mBusDecode(&data_in, this->returnFrame)) {
+      if (mBusDecode(data_in, this->returnFrame)) {
         LOG_D("Decode OK.");
         rxStatus = 1;
       }
