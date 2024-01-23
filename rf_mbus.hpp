@@ -586,6 +586,7 @@ class rf_mbus {
             }
             // Unknown type, reinit loop
             else {
+              LOGE("Unknown type.");
               rxLoop.state = INIT_RX;
             }
           }
@@ -600,6 +601,7 @@ class rf_mbus {
           }
           // Unknown mode, reinit loop
           else {
+            LOGE("Unknown mode.");
             rxLoop.state = INIT_RX;
           }
 
@@ -631,11 +633,13 @@ class rf_mbus {
           max_wait_time_ += extra_time_;
         }
         break;
+
+        // Czy nie dodac tutaj jeszcze jednego case na koncowke danych?
     }
 
     uint8_t overfl = ELECHOUSE_cc1101.SpiReadStatus(CC1101_RXBYTES) & 0x80;
     // Last part of data from FIFO
-    if ((!overfl) && (!digitalRead(gdo2)) && (rxLoop.state > WAIT_FOR_SYNC)) {
+    if ((!overfl) && (!digitalRead(gdo2)) && (rxLoop.state > WAIT_FOR_DATA)) {
       ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, (uint8_t)rxLoop.bytesLeft);
       rxLoop.state = DATA_END;
     }
