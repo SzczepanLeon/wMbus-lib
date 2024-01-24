@@ -77,11 +77,11 @@ static const char *TAG_L = "wmbus-lib";
   #include "esphome/core/helpers.h"
   #include <esphome/core/log.h>
 
-  // #define LOGVV(...) esphome::LOG_VV(tag, ...)
-  #define LOGV(...) esphome::ESP_LOGV(TAG_L, ...)
-  #define LOGD(...) esphome::ESP_LOGD(TAG_L, ...)
-  #define LOGI(...) esphome::ESP_LOGI(TAG_L, ...)
-  #define LOGE(...) esphome::ESP_LOGE(TAG_L, ...)
+  // #define LOGVV(...) esphome::LOG_VV(TAG_L, __VA_ARGS__)
+  #define LOGV(...) esphome::ESP_LOGV(TAG_L, __VA_ARGS__)
+  #define LOGD(...) esphome::ESP_LOGD(TAG_L, __VA_ARGS__)
+  #define LOGI(...) esphome::ESP_LOGI(TAG_L, __VA_ARGS__)
+  #define LOGE(...) esphome::ESP_LOGE(TAG_L, __VA_ARGS__)
 
 #else
   #define LOGV(...) \
