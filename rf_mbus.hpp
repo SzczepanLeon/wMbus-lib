@@ -681,7 +681,7 @@ class rf_mbus {
 
 
   WMbusFrame get_frame() {
-    LOGVV("Packet pobrany\n");
+    LOGVV("Packet pobrany\n")
     LOGI("Packet pobrany\n");
     return this->returnFrame;
   }
