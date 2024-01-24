@@ -78,10 +78,10 @@ static const char *TAG_L = "wmbus-lib";
   #include <esphome/core/log.h>
 
   // #define LOGVV(...) esphome::LOG_VV(tag, ...)
-  #define LOGV(...) esphome::LOG_V(tag, ...)
-  #define LOGD(...) esphome::LOG_D(tag, ...)
-  #define LOGI(...) esphome::LOG_I(tag, ...)
-  #define LOGE(...) esphome::LOG_E(tag, ...)
+  #define LOGV(...) esphome::ESP_LOGV(TAG_L, ...)
+  #define LOGD(...) esphome::ESP_LOGD(TAG_L, ...)
+  #define LOGI(...) esphome::ESP_LOGI(TAG_L, ...)
+  #define LOGE(...) esphome::ESP_LOGE(TAG_L, ...)
 
 #else
   #define LOGV(...) \
@@ -94,7 +94,6 @@ static const char *TAG_L = "wmbus-lib";
     Serial.printf(__VA_ARGS__);
 #endif
 
-bool myTrace(uint8_t t_byte);
 
 enum RxLoopState : uint8_t {
   INIT_RX       = 0,
