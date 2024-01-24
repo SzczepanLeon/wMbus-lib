@@ -78,10 +78,19 @@ static const char *TAG_L = "wmbus-lib";
   #include <esphome/core/log.h>
   // dorobic VV trcey w kodzie
   // zrobic tak ze jak nie ma danego LOG to sie nie pluje
-  #define LOGVV(...) \
-    esphome::ESP_LOGVV(TAG_L, __VA_ARGS__)
-  #define LOGV(...) \
-    esphome::ESP_LOGV(TAG_L, __VA_ARGS__)
+
+  #ifdef ESP_LOGVV
+    #define LOGVV(...) esphome::ESP_LOGVV(TAG_L, __VA_ARGS__)
+  #else
+    #define LOGVV(...) 
+  #endif
+
+  #ifdef ESP_LOGV
+    #define LOGV(...) esphome::ESP_LOGV(TAG_L, __VA_ARGS__)
+  #else
+    #define LOGV(...) 
+  #endif
+
   #define LOGD(...) \
     esphome::ESP_LOGD(TAG_L, __VA_ARGS__)
   #define LOGI(...) \
