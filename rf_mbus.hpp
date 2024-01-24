@@ -76,8 +76,6 @@ static const char *TAG_L = "wmbus-lib";
 #if defined(ESPHOME)
   #include "esphome/core/helpers.h"
   #include <esphome/core/log.h>
-  // dorobic VV trcey w kodzie
-  // zrobic tak ze jak nie ma danego LOG to sie nie pluje
 
   #ifdef esphome::LOG_VV
     #define LOGVV(...) esphome::LOG_VV(tag, ...)
@@ -85,14 +83,30 @@ static const char *TAG_L = "wmbus-lib";
     #define LOGVV(...)
   #endif
 
-  #define LOGV(...) \
-    esphome::ESP_LOGV(TAG_L, __VA_ARGS__)
-  #define LOGD(...) \
-    esphome::ESP_LOGD(TAG_L, __VA_ARGS__)
-  #define LOGI(...) \
-    esphome::ESP_LOGI(TAG_L, __VA_ARGS__)
-  #define LOGE(...) \
-    esphome::ESP_LOGE(TAG_L, __VA_ARGS__)
+  #ifdef esphome::LOG_V
+    #define LOGV(...) esphome::LOG_V(tag, ...)
+  #else
+    #define LOGV(...)
+  #endif
+
+  #ifdef esphome::LOG_D
+    #define LOGD(...) esphome::LOG_D(tag, ...)
+  #else
+    #define LOGD(...)
+  #endif
+
+  #ifdef esphome::LOG_I
+    #define LOGI(...) esphome::LOG_I(tag, ...)
+  #else
+    #define LOGI(...)
+  #endif
+
+  #ifdef esphome::LOG_E
+    #define LOGE(...) esphome::LOG_E(tag, ...)
+  #else
+    #define LOGE(...)
+  #endif
+
 #else
   #define LOGV(...) \
     Serial.printf(__VA_ARGS__);
@@ -682,7 +696,7 @@ class rf_mbus {
 
   WMbusFrame get_frame() {
     LOGVV("Packet pobrany\n");
-    // LOGI("Packet pobrany\n")
+    LOGI("Packet pobrany\n")
     return this->returnFrame;
   }
 
