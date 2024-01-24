@@ -77,35 +77,11 @@ static const char *TAG_L = "wmbus-lib";
   #include "esphome/core/helpers.h"
   #include <esphome/core/log.h>
 
-  #ifdef esphome::LOG_VV
-    #define LOGVV(...) esphome::LOG_VV(tag, ...)
-  #else
-    #define LOGVV(...)
-  #endif
-
-  #ifdef esphome::LOG_V
-    #define LOGV(...) esphome::LOG_V(tag, ...)
-  #else
-    #define LOGV(...)
-  #endif
-
-  #ifdef esphome::LOG_D
-    #define LOGD(...) esphome::LOG_D(tag, ...)
-  #else
-    #define LOGD(...)
-  #endif
-
-  #ifdef LOG_I
-    #define LOGI(...) esphome::LOG_I(tag, ...)
-  #else
-    #define LOGI(...)
-  #endif
-
-  #ifdef esphome::LOG_E
-    #define LOGE(...) esphome::LOG_E(tag, ...)
-  #else
-    #define LOGE(...)
-  #endif
+  // #define LOGVV(...) esphome::LOG_VV(tag, ...)
+  #define LOGV(...) esphome::LOG_V(tag, ...)
+  #define LOGD(...) esphome::LOG_D(tag, ...)
+  #define LOGI(...) esphome::LOG_I(tag, ...)
+  #define LOGE(...) esphome::LOG_E(tag, ...)
 
 #else
   #define LOGV(...) \
@@ -695,7 +671,7 @@ class rf_mbus {
 
 
   WMbusFrame get_frame() {
-    LOGVV("Packet pobrany\n");
+    // LOGVV("Packet pobrany\n");
     LOGI("Packet pobrany\n")
     return this->returnFrame;
   }
