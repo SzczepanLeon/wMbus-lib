@@ -131,6 +131,7 @@ enum WmBusFrameMode : uint8_t {
 };
 
 typedef struct RxLoopData {
+  uint16_t bytesRx;
   uint8_t  lengthField;         // The L-field in the WMBUS packet
   uint16_t length;              // Total number of bytes to to be read from the RX FIFO
   uint16_t bytesLeft;           // Bytes left to to be read from the RX FIFO
@@ -242,7 +243,7 @@ class rf_mbus {
       LOGD("Processing T1 A frame");
       std::vector<unsigned char> rawFrame(t_in.data, t_in.data + t_in.length);
       std::string telegram = esphome::format_hex_pretty(rawFrame);
-      // telegram.erase(std::remove(telegram.begin(), telegram.end(), '.'), telegram.end());
+      telegram.erase(std::remove(telegram.begin(), telegram.end(), '.'), telegram.end());
       LOGV("Frame: %s [RAW]", telegram.c_str());
 
       if (decode3OutOf6(&t_in, packetSize(t_in.lengthField))) {
@@ -562,6 +563,7 @@ class rf_mbus {
         if (digitalRead(this->gdo0)) { // assert when Rx FIFO buffer threshold reached
           // Read the 3 first bytes,
           ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, 3);
+          rxLoop.bytesRx += 3;
           const uint8_t *currentByte = rxLoop.pByteIndex;
           // Mode C
           if (*currentByte == 0x54) {
@@ -592,7 +594,7 @@ class rf_mbus {
             }
             *(rxLoop.pByteIndex) = rxLoop.lengthField;
             rxLoop.pByteIndex += 2;
-            // czy mam cofnac o 2 indeks rxLoop.pByteIndex?? pewnie tak
+            rxLoop.bytesRx -= 2;
           }
           // Mode T Block A
           else if (decode3OutOf6(rxLoop.pByteIndex, bytesDecoded)) {
@@ -635,6 +637,7 @@ class rf_mbus {
 
           rxLoop.bytesLeft  -= (bytesInFIFO - 1);
           rxLoop.pByteIndex += (bytesInFIFO - 1);
+          rxLoop.bytesRx += (bytesInFIFO - 1);
 
           max_wait_time_ += extra_time_;
         }
@@ -646,10 +649,12 @@ class rf_mbus {
   if ((!overfl) && (!digitalRead(gdo2)) && (rxLoop.state > WAIT_FOR_DATA)) {
     ELECHOUSE_cc1101.SpiReadBurstReg(CC1101_RXFIFO, rxLoop.pByteIndex, (uint8_t)rxLoop.bytesLeft);
     rxLoop.state = DATA_END;
+    rxLoop.bytesRx += rxLoop.bytesLeft;
 
-    LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d data_in.L %d",
-        rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField), data_in.length);
-    LOGD("Have %d bytes from CC1101 Rx (%d)", (rxLoop.pByteIndex - data_in.data), rxLoop.state);
+    data_in.length = rxLoop.bytesRx;
+    // LOGD("\n\nRX bytes %d, L %d (%02X), total frame length %d data_in.L %d",
+    //     rxLoop.length, rxLoop.lengthField, rxLoop.lengthField, packetSize(rxLoop.lengthField), data_in.length);
+    LOGD("Have %d bytes from CC1101 Rx", rxLoop.bytesRx);
     if (mBusDecode(data_in, this->returnFrame)) {
       LOGD("Packet OK.");
       this->returnFrame.framemode = rxLoop.framemode;
@@ -703,6 +708,7 @@ class rf_mbus {
       rxLoop.lengthField = 0;              // Length Field in the wireless MBUS packet
       rxLoop.length      = 0;              // Total length of bytes to receive packet
       rxLoop.bytesLeft   = 0;              // Bytes left to to be read from the RX FIFO
+      rxLoop.bytesRx     = 0;              // ile otrzymalismy bajtow
       // rxLoop.pByteIndex  = this->MBbytes;  // Pointer to current position in the byte array
       rxLoop.pByteIndex  = data_in.data;  // Pointer to current position in the byte array
       rxLoop.complete    = false;          // Packet Received
