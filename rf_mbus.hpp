@@ -80,7 +80,7 @@ static const char *TAG_L = "wmbus-lib";
   // zrobic tak ze jak nie ma danego LOG to sie nie pluje
 
   // #ifdef ESP_LOGVV
-    #define LOGVV(...)
+    #define LOGVV(...) esphome::LOG_VV(tag, ...)
   // #endif
 
   #define LOGV(...) \
