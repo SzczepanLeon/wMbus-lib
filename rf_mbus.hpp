@@ -79,9 +79,11 @@ static const char *TAG_L = "wmbus-lib";
   // dorobic VV trcey w kodzie
   // zrobic tak ze jak nie ma danego LOG to sie nie pluje
 
-  // #ifdef ESP_LOGVV
+  #ifdef esphome::LOG_VV
     #define LOGVV(...) esphome::LOG_VV(tag, ...)
-  // #endif
+  #else
+    #define LOGVV(...)
+  #endif
 
   #define LOGV(...) \
     esphome::ESP_LOGV(TAG_L, __VA_ARGS__)
