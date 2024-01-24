@@ -80,9 +80,9 @@ static const char *TAG_L = "wmbus-lib";
   // zrobic tak ze jak nie ma danego LOG to sie nie pluje
 
   #ifdef ESP_LOGVV
-    #define LOGVV(...) esphome::ESP_LOGVV(TAG_L, __VA_ARGS__)
+    #define LOGVV(...) esphome::ESP_LOGVV(TAG_L, __VA_ARGS__);
   #else
-    #define LOGVV(...) {}
+    #define LOGVV(...) {};
   #endif
 
   #define LOGV(...) \
@@ -681,7 +681,7 @@ class rf_mbus {
 
 
   WMbusFrame get_frame() {
-    LOGVV("Packet pobrany\n")
+    LOGVV("Packet pobrany\n");
     // LOGI("Packet pobrany\n")
     return this->returnFrame;
   }
